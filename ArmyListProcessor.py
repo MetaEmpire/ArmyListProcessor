@@ -56,23 +56,27 @@ with open(INPUT_FILE_NAME, mode = "r", newline ="", encoding="utf-8") as file:
         if row[0].startswith("Army Roster"): # this signifies we've reached the end of the interesting rows
             break
 
-        if new_unit: # this is executed if the previous line was "Unit", which means the next line contains special information we want.
+        # check if this row is the beginning of a new units series of rows
+        if row[0].startswith("Unit"):
+            new_unit = True
+            continue # this is redundant, the regex filter would catch unit currently. TODO: remove redundancy
+        elif new_unit: # save certain information to be stamped on each row until a new unit begins
             current_unit_name = row[0]
             current_unit_toughness = int(row[2]) # this assumes every model inside the unit has the same toughness. Which is not always true for some factions. TODO: Fix unit toughness sameness assumption
-            #print(current_unit_toughness)
-            new_unit = False
-        elif row[0].startswith("Unit"):
-            new_unit = True
 
+        # discard unwanted rows
         if match or row[1] == "": # row[1] being blank means it's a leadership block, and we discard it for now.
             continue
+        # add desired rows to output list
         else:
+            row.insert(0, str(new_unit)) # add a column to the list for formatting in spreadsheet editor
             new_list.append((current_unit_toughness, current_unit_name, row))
+            new_unit = False
 
     #print(new_list)
 
     sorted_list = sorted(new_list, key = lambda x: (x[0], x[1])) # sort the tuples first by toughness/range of the unit, then by unit name
-
+    sorted_list.insert(0, (0, 0, ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks", "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg", "Keywords", "Abilities Shortened"]))
     #print(sorted_list)
 
     #TODO: remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
