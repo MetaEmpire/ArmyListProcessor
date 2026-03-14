@@ -35,13 +35,28 @@ def remove_duplicate_statlines(list_of_tuples):
         if tupl[2][2:] != list_of_tuples[index - 1][2][2:]: # lines of code like this make me want to step back and refactor a lot.
             list_without_duplicates.append(tupl)
         else:
-            print(f"duplicate detected {tupl[2]}")
+            #print(f"duplicate detected {tupl[2]}")
             continue
     return list_without_duplicates
 
 
 
 new_list = []
+
+
+def shift_abilities_rows(list_with_abilities_rows):
+    list_with_abilities_shifted = []
+
+    index_of_last_unit_start = 0
+    for index, tupl in enumerate(list_with_abilities_rows):
+        if tupl[2][0] == "True":
+            index_of_last_unit_start = index
+        if tupl[2][1] == "Abilities":
+            print(f"Found an ability row, and the last unit start index was {index_of_last_unit_start}")
+
+
+    return list_with_abilities_shifted
+
 
 with open(INPUT_FILE_NAME, mode = "r", newline ="", encoding="utf-8") as file:
     csv_reader = csv.reader(file)
@@ -89,20 +104,21 @@ with open(INPUT_FILE_NAME, mode = "r", newline ="", encoding="utf-8") as file:
     #print(new_list)
 
     sorted_list = sorted(new_list, key = lambda x: (x[0], x[1])) # sort the tuples first by toughness/range of the unit, then by unit name
-    sorted_list.insert(0, (0, 0, ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks", "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg", "Keywords", "Abilities Shortened"]))
-    #print(sorted_list)
 
-    #TODO: remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
+    # add header row
+    sorted_list.insert(0, (0, 0, ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks",
+                                  "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg", "Keywords",
+                                  "Abilities Shortened"]))
+
+    # remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
     no_duplicates_list = remove_duplicate_statlines(sorted_list)
 
-    #TODO: Move the abilities rows to the right of the stat block with a column of space, 8th cell or index 7.
-
-
+    #TODO: Move the abilities rows to the right of the stat block with a column of space ( at index len(row)+1 )
+    abilities_shifted_list = shift_abilities_rows(no_duplicates_list)
 
     with open(OUTPUT_FILE_NAME, mode="w", newline="", encoding="utf-8") as out_file:
         out_writer = csv.writer(out_file)
         for tup in no_duplicates_list:
             out_writer.writerow(tup[2])
-        #out_writer.writerows(sorted_list)
 
 
