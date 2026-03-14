@@ -1,5 +1,11 @@
-#ArmyListProcessor.py
-#a utility for processing wargaming profiles into a cleaner/shorter reference
+# ArmyListProcessor.py
+# a utility for processing wargaming profiles into a cleaner/shorter reference
+
+# pseudocode:
+#         # if line matches 'discard' regex, discard row
+#         # if line matches "rules/categories/leader", process for relevant keywords and store
+#         # else, if we can tell this line belongs to the current unit, add it to a new list of lists.
+#         #       so each unit will have its own list of csv rows.
 
 # example data from CSV read: 
 ##['Unit', 'M', 'T', 'SV', 'W', 'LD', 'OC', '']
@@ -21,30 +27,36 @@ def print_regex_match(re_match, original_string):
     print(f"Match: {re_match.group()}")
     print(f"Span: {re_match.span()}")
 
+new_list = []
 
 with open(INPUT_FILE_NAME, mode = "r", newline ="", encoding="utf-8") as file:
     csv_reader = csv.reader(file)
 
-    discard_re = re.compile(r"^(unit|\d+ )|\b(?:{move|don't|models|ranged weapons|melee weapons|abilities})\b", re.IGNORECASE)
+    discard_re = re.compile(r"^(unit|\d+ )|\b(?:{Move|don't|models|ranged weapons|melee weapons|abilities})\b|\A\Z", re.IGNORECASE)
     #discard_re = r"^(unit|\d+)|\b(?:{Move|don't|models|ranged weapons|melee weapons|abilities})\b"
 
     options_re = re.compile(r"(\d*)x", re.IGNORECASE)
 
     leader_re = re.compile(r"^leader", re.IGNORECASE)
 
-    
+
 
     for row in csv_reader:
         #match = leader_re.match(row[0])
-        #match = discard_re.match(row[0])
-        match = options_re.match(row[0])
+        match = discard_re.match(row[0])
+        #match = options_re.match(row[0])
+
+        if row[0].startswith("Army Roster"): # this signifies we've reached the end of the interesting rows
+            break
+
         if match:
             print_regex_match(match, row[0])
             #print(match.group())
+            #new_list.append(row)
         else:
-            print(f"No match found for {row[0]}")
+            print(f"Did not find match for {row[0]}")
 
-        # if line matches 'discard' regex, discard row
-        # if line matches "rules/categories/leader", process for relevant keywords and store
-        # else, if we can tell this line belongs to the current unit, add it to a new list of lists.
-        #       so each unit will have its own list of csv rows.
+    print(new_list)
+
+
+
