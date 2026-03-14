@@ -21,6 +21,7 @@ import re
 import csv
 
 INPUT_FILE_NAME = "gsheetexport.csv"
+OUTPUT_FILE_NAME = "pyexport.csv"
 
 def print_regex_match(re_match, original_string):
     print(f"String: {original_string}")
@@ -32,7 +33,7 @@ new_list = []
 with open(INPUT_FILE_NAME, mode = "r", newline ="", encoding="utf-8") as file:
     csv_reader = csv.reader(file)
 
-    discard_re = re.compile(r"^(unit|\d+ |(\d*)x|leader)|\b(?:{Move|don't|models|ranged weapons|melee weapons|abilities})\b|\A\Z", re.IGNORECASE)
+    discard_re = re.compile(r"^(unit|\d+ |(\d*)x|leader|Categories|Rules|Abilities)|\b(?:{Move|don't|models|ranged weapons|melee weapons})\b|\A\Z", re.IGNORECASE)
 
     #options_re = re.compile(r"(\d*)x", re.IGNORECASE)
 
@@ -55,20 +56,25 @@ with open(INPUT_FILE_NAME, mode = "r", newline ="", encoding="utf-8") as file:
         if new_unit: # this is executed if the previous line was "Unit", which means the next line contains special information we want.
             new_unit = False
             current_unit_name = row[0]
-            current_unit_toughness = row[2]
+            current_unit_toughness = int(row[2])
             print(current_unit_toughness)
-
-        if row[0].startswith("Unit"):
+        elif row[0].startswith("Unit"):
             new_unit = True
-
 
         if row[1] == "" or match: # this is a row that contains units a leader can be attached to, and for now isn't interesting.
             continue
 
         else:
-            new_list.append((row, current_unit_name, current_unit_toughness))
+            new_list.append((current_unit_toughness, current_unit_name, row))
 
-    print(new_list)
+    #print(new_list)
 
+    sorted_list = sorted(new_list, key = lambda tup: (tup[0], tup[1]))
+
+    #print(sorted_list)
+
+    with open(OUTPUT_FILE_NAME, mode="w", newline="", encoding="utf-8") as out_file:
+        out_writer = csv.writer(out_file)
+        out_writer.writerows(sorted_list)
 
 
