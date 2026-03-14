@@ -16,22 +16,28 @@ import csv
 
 INPUT_FILE_NAME = "gsheetexport.csv"
 
-
-def print_regex_match(match, original_string):
+def print_regex_match(re_match, original_string):
     print(f"String: {original_string}")
-    print(f"Match: {match.group()}")
-    print(f"Span: {match.span()}")
+    print(f"Match: {re_match.group()}")
+    print(f"Span: {re_match.span()}")
 
 
 with open(INPUT_FILE_NAME, mode = "r", newline ="", encoding="utf-8") as file:
     csv_reader = csv.reader(file)
-    discard_re = re.compile(r"^(unit|\d+)|\b(?:{move|don't|models|ranged weapons|melee weapons|abilities})\b", re.IGNORECASE)
+
+    discard_re = re.compile(r"^(unit|\d+ )|\b(?:{move|don't|models|ranged weapons|melee weapons|abilities})\b", re.IGNORECASE)
     #discard_re = r"^(unit|\d+)|\b(?:{Move|don't|models|ranged weapons|melee weapons|abilities})\b"
-    # this pattern catches 1 kind of row that I might want to keep, rows that start with 1x, denoting options for the
-    # unit which could be used to distinguish between similar units with different options.
+
+    options_re = re.compile(r"(\d*)x", re.IGNORECASE)
+
+    leader_re = re.compile(r"^leader", re.IGNORECASE)
+
+    
+
     for row in csv_reader:
-        match = discard_re.match(row[0])
-        #if re.match(discard_re, row[0]):
+        #match = leader_re.match(row[0])
+        #match = discard_re.match(row[0])
+        match = options_re.match(row[0])
         if match:
             print_regex_match(match, row[0])
             #print(match.group())
