@@ -28,6 +28,19 @@ def print_regex_match(re_match, original_string):
     print(f"Match: {re_match.group()}")
     print(f"Span: {re_match.span()}")
 
+# takes a list of tuples containing unit data. If the stat block is exactly the same as the above, skip it.
+def remove_duplicate_statlines(list_of_tuples):
+    list_without_duplicates = []
+    for index, tupl in enumerate(list_of_tuples):
+        if tupl[2][2:] != list_of_tuples[index - 1][2][2:]: # lines of code like this make me want to step back and refactor a lot.
+            list_without_duplicates.append(tupl)
+        else:
+            print(f"duplicate detected {tupl[2]}")
+            continue
+    return list_without_duplicates
+
+
+
 new_list = []
 
 with open(INPUT_FILE_NAME, mode = "r", newline ="", encoding="utf-8") as file:
@@ -80,11 +93,15 @@ with open(INPUT_FILE_NAME, mode = "r", newline ="", encoding="utf-8") as file:
     #print(sorted_list)
 
     #TODO: remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
+    no_duplicates_list = remove_duplicate_statlines(sorted_list)
+
     #TODO: Move the abilities rows to the right of the stat block with a column of space, 8th cell or index 7.
+
+
 
     with open(OUTPUT_FILE_NAME, mode="w", newline="", encoding="utf-8") as out_file:
         out_writer = csv.writer(out_file)
-        for tup in sorted_list:
+        for tup in no_duplicates_list:
             out_writer.writerow(tup[2])
         #out_writer.writerows(sorted_list)
 
