@@ -47,12 +47,36 @@ new_list = []
 def shift_abilities_rows(list_with_abilities_rows):
     list_with_abilities_shifted = []
 
+    # iterate through every item in the list. Whenever we encounter the new unit flag, remember that index.
+    # whenever we find the "Ability" row, shift row content up to the unit index + 1.
     index_of_last_unit_start = 0
+    index = 0
+    while index < len(list_with_abilities_rows):
+        if list_with_abilities_rows[2][0] == True:
+            index_of_last_unit_start = index
+            list_with_abilities_shifted.append(list_with_abilities_rows[index])
+
+        elif list_with_abilities_rows[2][1] == "Abilities":
+            # shift each line over until we hit a new unit flag.
+            while list_with_abilities_rows[index][0] == False:
+                print(f"Ability row found at index {index}: {list_with_abilities_rows[index][2][0]}")
+                index += 1
+
+        index += 1
+
+
+
+
+
+
+
+    """
     for index, tupl in enumerate(list_with_abilities_rows):
         if tupl[2][0] == "True":
             index_of_last_unit_start = index
         if tupl[2][1] == "Abilities":
             print(f"Found an ability row, and the last unit start index was {index_of_last_unit_start}")
+    """
 
 
     return list_with_abilities_shifted
@@ -118,7 +142,7 @@ with open(INPUT_FILE_NAME, mode = "r", newline ="", encoding="utf-8") as file:
 
     with open(OUTPUT_FILE_NAME, mode="w", newline="", encoding="utf-8") as out_file:
         out_writer = csv.writer(out_file)
-        for tup in no_duplicates_list:
+        for tup in abilities_shifted_list:
             out_writer.writerow(tup[2])
 
 
