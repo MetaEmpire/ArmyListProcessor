@@ -66,11 +66,20 @@ def handle_garbage_row(unit, row):
 def handle_name_row(unit, row):
     unit.unit_model_stat_rows.append(row)
 def handle_ranged_row(unit, row):
-    unit.ranged_rows.append(row)
+    # if row contains the pistol keyword move the weapon into the melee list
+    if "pistol" in row[7].lower():
+        handle_melee_row(unit, row)
+    else:
+        unit.ranged_rows.append(row)
 def handle_melee_row(unit, row):
     unit.melee_rows.append(row)
 def handle_ability_row(unit, row):
-    unit.ability_rows.append(row)
+    # process for common keywords like Fly, Deepstrike, grenades
+    # if row has nothing in row 2, dump it
+    if row[1] == "":
+        pass
+    else:
+        unit.ability_rows.append(row)
 
 
 def parse_input_to_units(input_file):
@@ -93,7 +102,7 @@ def parse_input_to_units(input_file):
 
         for row in csv_reader:
 
-            # this signifies that the current unit is done and we're on a new unit
+            # this signifies that the current unit is done, and we're on a new unit
             if handler != handle_garbage_row and row[0].lower() == "move up":
                 return_me.append(current_unit)
                 current_unit = Unit()
@@ -105,13 +114,8 @@ def parse_input_to_units(input_file):
                 continue
 
             # if we aren't in a "header" row, process the line according to the current handler.
-            # I need logic that detects when a new unit begins, when we go from any state to garbage state.
             else:
                 handler(current_unit,row)
-
-
-    # check for special keywords: rules, categories, unit, "Army Roster", "abilities", "pistol"
-    # else check for 3rd column to see if there is data, if not drop it
 
     return return_me
 
@@ -177,10 +181,8 @@ def main():
     csv_to_tuples = parse_input_to_tuples(INPUT_FILE_NAME)
     csv_to_units = parse_input_to_units(INPUT_FILE_NAME)
 
-    print(csv_to_units)
     for unit in csv_to_units:
         print(unit)
-
 
     # sort list by toughness / range column.
     sorted_list = sorted(csv_to_tuples, key = lambda x: (x[0], x[1])) # sort the tuples first by toughness/range of the unit, then by unit name
