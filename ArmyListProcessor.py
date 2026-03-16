@@ -16,9 +16,9 @@
 ##['Melee Weapons', 'Range', 'A', 'WS', 'S', 'AP', 'D', 'Keywords']
 ##['Close combat weapon', 'Melee', '3', '4+', '3', '0', '1', '-']
 
-
 import re
 import csv
+from enum import Enum, auto
 from typing import Any
 
 INPUT_FILE_NAME = "gsheetexport.csv"
@@ -26,13 +26,14 @@ OUTPUT_FILE_NAME = "pyexport.csv"
 
 # a unit represented by a block of contiguous rows in the input file
 class Unit:
-    def __init__(self, unit_name, unit_toughness):
-        self.unit_name = unit_name
-        self.unit_toughness = unit_toughness
-        self.stat_rows = []
+    def __init__(self):
+        self.unit_model_stat_rows = []
         self.ranged_rows = []
         self.melee_rows = []
         self.ability_rows = []
+
+    def __str__(self):
+        return self.unit_model_stat_rows[0][0]
 
 def print_regex_match(re_match, original_string):
     print(f"String: {original_string}")
@@ -51,43 +52,66 @@ def remove_duplicate_statlines(list_of_tuples):
     return list_without_duplicates
 
 def shift_abilities_rows(list_with_abilities_rows):
-    list_with_abilities_shifted = []
+    pass
 
-    # iterate through every item in the list. Whenever we encounter the new unit flag, remember that index.
-    # whenever we find the "Ability" row, shift row content up to the unit index + 1.
-    index_of_last_unit_start = 0
-    index = 0
-    while index < len(list_with_abilities_rows):
-        if list_with_abilities_rows[2][0] == True:
-            index_of_last_unit_start = index
-            list_with_abilities_shifted.append(list_with_abilities_rows[index])
+class Section(Enum):
+    NONE = auto()
+    NAME = auto()
+    RANGED = auto()
+    MELEE = auto()
+    ABILITY = auto()
 
-        elif list_with_abilities_rows[2][1] == "Abilities":
-            # shift each line over until we hit a new unit flag.
-            while list_with_abilities_rows[index][0] == False:
-                print(f"Ability row found at index {index}: {list_with_abilities_rows[index][2][0]}")
-                index += 1
+def handle_garbage_row(unit, row):
+    pass
+def handle_name_row(unit, row):
+    unit.unit_model_stat_rows.append(row)
+def handle_ranged_row(unit, row):
+    unit.ranged_rows.append(row)
+def handle_melee_row(unit, row):
+    unit.melee_rows.append(row)
+def handle_ability_row(unit, row):
+    unit.ability_rows.append(row)
 
-        index += 1
-
-
-
-
-    """
-    for index, tupl in enumerate(list_with_abilities_rows):
-        if tupl[2][0] == "True":
-            index_of_last_unit_start = index
-        if tupl[2][1] == "Abilities":
-            print(f"Found an ability row, and the last unit start index was {index_of_last_unit_start}")
-    """
-
-
-    return list_with_abilities_shifted
 
 def parse_input_to_units(input_file):
     return_me = []
+
+    # function map (dict?)
+    SECTION_MAP = {
+        "Move Up": handle_garbage_row,
+        "Unit": handle_name_row,
+        "Ranged Weapons": handle_ranged_row,
+        "Melee Weapons": handle_melee_row,
+        "Abilities": handle_ability_row,
+    }
+
     with open(input_file, mode="r", newline="", encoding="utf-8") as file:
         csv_reader = csv.reader(file)
+
+        current_unit = Unit()
+        handler = handle_garbage_row
+
+        for row in csv_reader:
+
+            # this signifies that the current unit is done and we're on a new unit
+            if handler != handle_garbage_row and row[0].lower() == "move up":
+                return_me.append(current_unit)
+                current_unit = Unit()
+                continue
+
+            # detect what section we are in and set the handler
+            if row[0] in SECTION_MAP:
+                handler = SECTION_MAP[row[0]]
+                continue
+
+            # if we aren't in a "header" row, process the line according to the current handler.
+            # I need logic that detects when a new unit begins, when we go from any state to garbage state.
+            else:
+                handler(current_unit,row)
+
+
+    # check for special keywords: rules, categories, unit, "Army Roster", "abilities", "pistol"
+    # else check for 3rd column to see if there is data, if not drop it
 
     return return_me
 
@@ -151,6 +175,12 @@ def write_output(output_list):
 def main():
     # parse input file to a list of tuples, removing blank rows
     csv_to_tuples = parse_input_to_tuples(INPUT_FILE_NAME)
+    csv_to_units = parse_input_to_units(INPUT_FILE_NAME)
+
+    print(csv_to_units)
+    for unit in csv_to_units:
+        print(unit)
+
 
     # sort list by toughness / range column.
     sorted_list = sorted(csv_to_tuples, key = lambda x: (x[0], x[1])) # sort the tuples first by toughness/range of the unit, then by unit name
