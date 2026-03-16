@@ -19,9 +19,20 @@
 
 import re
 import csv
+from typing import Any
 
 INPUT_FILE_NAME = "gsheetexport.csv"
 OUTPUT_FILE_NAME = "pyexport.csv"
+
+# a unit represented by a block of contiguous rows in the input file
+class Unit:
+    def __init__(self, unit_name, unit_toughness):
+        self.unit_name = unit_name
+        self.unit_toughness = unit_toughness
+        self.stat_rows = []
+        self.ranged_rows = []
+        self.melee_rows = []
+        self.ability_rows = []
 
 def print_regex_match(re_match, original_string):
     print(f"String: {original_string}")
@@ -73,6 +84,14 @@ def shift_abilities_rows(list_with_abilities_rows):
 
     return list_with_abilities_shifted
 
+def parse_input_to_units(input_file):
+    return_me = []
+    with open(input_file, mode="r", newline="", encoding="utf-8") as file:
+        csv_reader = csv.reader(file)
+
+    return return_me
+
+
 def parse_input_to_tuples(input_file):
     return_me = []
     with open(input_file, mode="r", newline="", encoding="utf-8") as file:
@@ -100,13 +119,13 @@ def parse_input_to_tuples(input_file):
             # match = leader_re.match(row[0])
 
             # special cases:
-            if row[0].startswith("Army Roster"):  # this signifies we've reached the end of the interesting rows
+            if row[0].startswith("Army Roster"):  # this signifies we've reached the end of the unit related rows
                 break
 
             # check if this row is the beginning of a new units series of rows
             if row[0].startswith("Unit"):
                 new_unit = True
-                continue  # this is redundant, the regex filter would catch "unit" currently. TODO: remove redundancy
+                continue  # this is redundant, the regex filter would catch "unit" below and discard. TODO: remove redundancy
             elif new_unit:  # save certain information to be stamped on each row until a new unit begins
                 current_unit_name = row[0]
                 current_unit_toughness = int(row[2])  # this assumes every model inside the unit has the same toughness. Which is not always true for some factions. TODO: Fix unit toughness sameness assumption
@@ -122,13 +141,12 @@ def parse_input_to_tuples(input_file):
 
     return return_me
 
-class Unit:
-    def __init__(self, unit_name, unit_toughness):
-        self.unit_name = unit_name
-        self.unit_toughness = unit_toughness
-        self.stat_rows = []
-        self.ability_rows = []
-
+def write_output(output_list):
+    # output final list back into a .csv
+    with open(OUTPUT_FILE_NAME, mode="w", newline="", encoding="utf-8") as out_file:
+        out_writer = csv.writer(out_file)
+        for tup in output_list:
+            out_writer.writerow(tup[2])
 
 def main():
     # parse input file to a list of tuples, removing blank rows
@@ -148,12 +166,9 @@ def main():
     sorted_list.insert(0, (0, 0, ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks",
                                   "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg", "Keywords",
                                   "Abilities Shortened"]))
+    # output to a .csv
+    write_output(no_duplicates_list)
 
-    # output final list back into a .csv
-    with open(OUTPUT_FILE_NAME, mode="w", newline="", encoding="utf-8") as out_file:
-        out_writer = csv.writer(out_file)
-        for tup in no_duplicates_list:
-            out_writer.writerow(tup[2])
 
 if __name__ == '__main__':
     main()
