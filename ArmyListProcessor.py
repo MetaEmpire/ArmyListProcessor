@@ -61,16 +61,31 @@ class Section(Enum):
     MELEE = auto()
     ABILITY = auto()
 
+def convert_to_numbers_if_possible(list_of_strings):
+    return_me = []
+    for string in list_of_strings:
+        stripped_string = string.strip("+\"")
+        try:
+            new_value = int(stripped_string)
+            return_me.append(new_value)
+        except ValueError:
+            return_me.append(string)
+    return return_me
+
+
 def handle_garbage_row(unit, row):
     pass
 def handle_name_row(unit, row):
-    unit.unit_model_stat_rows.append(row)
+    # cast everything that can be casted to an int
+    new_row = convert_to_numbers_if_possible(row)
+    unit.unit_model_stat_rows.append(new_row)
 def handle_ranged_row(unit, row):
     # if row contains the pistol keyword move the weapon into the melee list
     if "pistol" in row[7].lower():
         handle_melee_row(unit, row)
     else:
-        unit.ranged_rows.append(row)
+        new_row = convert_to_numbers_if_possible(row)
+        unit.ranged_rows.append(new_row)
 def handle_melee_row(unit, row):
     unit.melee_rows.append(row)
 def handle_ability_row(unit, row):
@@ -181,14 +196,16 @@ def main():
     csv_to_tuples = parse_input_to_tuples(INPUT_FILE_NAME)
     csv_to_units = parse_input_to_units(INPUT_FILE_NAME)
 
-    for unit in csv_to_units:
-        print(unit)
-
     # sort list by toughness / range column.
     sorted_list = sorted(csv_to_tuples, key = lambda x: (x[0], x[1])) # sort the tuples first by toughness/range of the unit, then by unit name
+    csv_to_units.sort(key = lambda unit: unit.unit_model_stat_rows[0][2])
+    for unit in csv_to_units:
+        unit.ranged_rows.sort(key = lambda row: row[1], reverse = True)
+        #print(unit.ranged_rows)
 
     # remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
     no_duplicates_list = remove_duplicate_statlines(sorted_list)
+
 
     #TODO: Move the abilities rows to the right of the stat block with a column of space ( at index len(row)+1 )
     abilities_shifted_list = shift_abilities_rows(no_duplicates_list)
