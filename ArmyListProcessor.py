@@ -122,6 +122,13 @@ def parse_input_to_tuples(input_file):
 
     return return_me
 
+class Unit:
+    def __init__(self, unit_name, unit_toughness):
+        self.unit_name = unit_name
+        self.unit_toughness = unit_toughness
+        self.stat_rows = []
+        self.ability_rows = []
+
 
 def main():
     # parse input file to a list of tuples, removing blank rows
