@@ -1,13 +1,13 @@
 # ArmyListProcessor.py
 # a utility for processing wargaming profiles into a cleaner/shorter reference
-
+#
 # pseudocode:
-#         # if line matches 'discard' regex, discard row
-#         # if line matches "rules/categories/leader", process for relevant keywords and store
-#         # else, if we can tell this line belongs to the current unit, add it to a new list of lists.
-#         #       so each unit will have its own list of csv rows.
+# read each row, determine if it's a section header row. If it is, change the current state
+# process each non-header row according to the current state
+# process units to sort them, remove duplicates, and condense verbose abilities
+# write each unit out in rows with some extra columns that makes the output easier to format in a spreadsheet
 
-# example data from CSV read: 
+# example data from CSV input:
 ##['Unit', 'M', 'T', 'SV', 'W', 'LD', 'OC', '']
 ##['Cadre Fireblade', '6"', '3', '4+', '3', '7+', '1', '']
 ##['Ranged Weapons', 'Range', 'A', 'BS', 'S', 'AP', 'D', 'Keywords']
@@ -18,13 +18,11 @@
 
 import re
 import csv
-from enum import Enum, auto
-from typing import Any
 
 INPUT_FILE_NAME = "gsheetexport.csv"
 OUTPUT_FILE_NAME = "pyexport.csv"
 
-# a unit represented by a block of contiguous rows in the input file
+# a unit represented by a collection of named lists, based on the rows from the input format
 class Unit:
     def __init__(self):
         self.unit_model_stat_rows = []
@@ -32,66 +30,58 @@ class Unit:
         self.melee_rows = []
         self.ability_rows = []
 
+    # return the name of the first model in the unit
     def __str__(self):
         return self.unit_model_stat_rows[0][0]
 
+# Regex helper utility, prints information about the regex match
 def print_regex_match(re_match, original_string):
     print(f"String: {original_string}")
     print(f"Match: {re_match.group()}")
     print(f"Span: {re_match.span()}")
 
-# takes a list of tuples containing unit data. If the stat block is exactly the same as the above, skip it.
-def remove_duplicate_statlines(list_of_tuples):
-    list_without_duplicates = []
-    for index, tupl in enumerate(list_of_tuples):
-        if tupl[2][2:] != list_of_tuples[index - 1][2][2:]: # lines of code like this make me want to step back and refactor a lot.
-            list_without_duplicates.append(tupl)
-        else:
-            #print(f"duplicate detected {tupl[2]}")
-            continue
-    return list_without_duplicates
-
-def shift_abilities_rows(list_with_abilities_rows):
-    pass
-
-class Section(Enum):
-    NONE = auto()
-    NAME = auto()
-    RANGED = auto()
-    MELEE = auto()
-    ABILITY = auto()
-
-def convert_to_numbers_if_possible(list_of_strings):
+def try_converting_to_ints(list_of_strings):
     return_me = []
     for string in list_of_strings:
-        stripped_string = string.strip("+\"")
         try:
+            stripped_string = string.strip("+\"")
             new_value = int(stripped_string)
             return_me.append(new_value)
-        except ValueError:
+        except (ValueError, AttributeError): # if we can't cast, keep the original string
             return_me.append(string)
+            #print(f"One of the expected errors occurred while trying to cast a string to an int: {string}")
     return return_me
-
 
 def handle_garbage_row(unit, row):
     pass
 def handle_name_row(unit, row):
-    # cast everything that can be casted to an int
-    new_row = convert_to_numbers_if_possible(row)
+    # cast everything that can be to an int
+    new_row = try_converting_to_ints(row)
     unit.unit_model_stat_rows.append(new_row)
 def handle_ranged_row(unit, row):
     # if row contains the pistol keyword move the weapon into the melee list
-    if "pistol" in row[7].lower():
-        handle_melee_row(unit, row)
+    new_row = try_converting_to_ints(row)
+    if "pistol" in new_row[7].lower():
+        handle_melee_row(unit, new_row)
     else:
-        new_row = convert_to_numbers_if_possible(row)
         unit.ranged_rows.append(new_row)
 def handle_melee_row(unit, row):
-    unit.melee_rows.append(row)
+    new_row = try_converting_to_ints(row)
+    unit.melee_rows.append(new_row)
+
+ABILITY_FILTER = ["Fly", "Markerlight", "Stealth", "Scouts 7", "Deep Strike", "Deadly Demise D3"]
+# regex example:
+# #ability_re = re.compile(r"\b(?:fly|Markerlight|Stealth|Deep Strike|Deadly Demise .\d+|Scouts \d+")\b", re.IGNORECASE)
+
 def handle_ability_row(unit, row):
     # TODO: process for common keywords like Fly, Deepstrike, grenades
+    if row[0].lower() in ["rules", "categories"]:
+        ability_re = re.compile(r'(?:fly|Markerlight|Stealth|Deep Strike|Deadly Demise D?\d{1}|Scouts \d+)', re.IGNORECASE)
+        matches = re.findall(ability_re, "".join(row))
+        if len(matches) > 0:
+            unit.ability_rows.append([" ".join(matches), row[1]])
     # if row has nothing in row 2, dump it
-    if row[1] == "":
+    elif row[1] == "":
         pass
     else:
         unit.ability_rows.append(row)
@@ -123,7 +113,7 @@ def parse_input_to_units(input_file):
                 current_unit = Unit()
                 handler = handle_garbage_row
 
-            # if we detect a header row advance the handler state
+            # if we detect a header row change the handler state
             if row[0] in SECTION_MAP:
                 handler = SECTION_MAP[row[0]]
                 continue
@@ -134,19 +124,14 @@ def parse_input_to_units(input_file):
 
     return return_me
 
-def write_output(output_list):
-    # output final list back into a .csv
-    with open(OUTPUT_FILE_NAME, mode="w", newline="", encoding="utf-8") as out_file:
-        out_writer = csv.writer(out_file)
-        for tup in output_list:
-            out_writer.writerow(tup[2])
-
 def remove_duplicate_models(units_with_duplicates):
     return_me = []
 
     for unit in units_with_duplicates:
         previous_stats = list(range(6))
         removed_model_names = ""
+
+        # check to see if this unit even has duplicates to consider
         if len(unit.unit_model_stat_rows) > 1:
             new_model_list = []
 
@@ -164,18 +149,22 @@ def remove_duplicate_models(units_with_duplicates):
             unit.unit_model_stat_rows = new_model_list
             unit.unit_model_stat_rows[0][0] += removed_model_names
 
+        # end duplicate checking if block
         return_me.append(unit)
 
     return return_me
 
 
-def write_units_to_output(final_list):
+def write_list_to_csv(final_list):
     with open(OUTPUT_FILE_NAME, mode="w", newline="", encoding="utf-8") as out_file:
         out_writer = csv.writer(out_file)
         for row in final_list:
             out_writer.writerow(row)
 
+def shift_abilities_rows(list_with_abilities_rows):
+    pass
 
+# TODO, refactor some of the shifting logic out of the "to rows" function, they are doing 2 different tasks
 def unit_list_to_rows(unit_list):
     return_me = []
 
@@ -198,9 +187,9 @@ def unit_list_to_rows(unit_list):
             i += 1
 
         # logic for padding the units overall rows so the abilities will all fit to the right of the stat block.
-        if (len(unit.ranged_rows) + len(unit.melee_rows)) < len(unit.ability_rows):
-            for y in range(len(unit.ability_rows) - (len(unit.ranged_rows) + len(unit.melee_rows))):
-                #return_me.append(list(range(12)))
+        padding_rows_needed = len(unit.ability_rows) - (len(unit.ranged_rows) + len(unit.melee_rows))
+        if padding_rows_needed > 0:
+            for y in range(padding_rows_needed):
                 return_me.append(["" for i in range(12)])
                 i += 1
 
@@ -223,25 +212,22 @@ def main():
 
     # sort units by toughness and then sort ranged weapons by range.
     csv_to_units.sort(key = lambda unit: unit.unit_model_stat_rows[0][2])
+
     for unit in csv_to_units:
         unit.ranged_rows.sort(key = lambda row: row[1], reverse = True)
-
 
     # remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
     no_duplicate_models = remove_duplicate_models(csv_to_units)
     # TODO: Expand this function to remove duplicate units (not only models) that just happen to have 1-2 weapon differences.
-    # example, 2 hammerhead tanks with the same guns except the main gun, doesnt need its own entry.
+    # example, 2 hammerhead tanks with the same guns except the main gun, shouldn't duplicate every row in the final output
 
-    #TODO: Move the abilities rows to the right of the stat block with a column of space ( at index len(row)+1 )
-    #abilities_shifted_list = shift_abilities_rows(no_duplicates_list)
-    # make sure to change the lists below to use the shifted list.
-
-
+    # flatten units into simple rows
+    #TODO: Move the abilities rows to the right of the stat block with a column of space
+    #abilities_shifted_list = shift_abilities_rows(no_duplicate_models)
+    final_list = unit_list_to_rows(no_duplicate_models)
 
     # output to a .csv
-    #write_output(no_duplicates_list)
-    final_list = unit_list_to_rows(no_duplicate_models)
-    write_units_to_output(final_list)
+    write_list_to_csv(final_list)
 
 
 if __name__ == '__main__':
