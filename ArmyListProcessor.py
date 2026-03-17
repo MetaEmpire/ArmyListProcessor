@@ -70,11 +70,8 @@ def handle_melee_row(unit, row):
     unit.melee_rows.append(new_row)
 
 ABILITY_FILTER = ["Fly", "Markerlight", "Stealth", "Scouts 7", "Deep Strike", "Deadly Demise D3"]
-# regex example:
-# #ability_re = re.compile(r"\b(?:fly|Markerlight|Stealth|Deep Strike|Deadly Demise .\d+|Scouts \d+")\b", re.IGNORECASE)
 
 def handle_ability_row(unit, row):
-    # TODO: process for common keywords like Fly, Deepstrike, grenades
     if row[0].lower() in ["rules", "categories"]:
         ability_re = re.compile(r'fly|Markerlight|Stealth|Deep Strike|Deadly Demise D?\d|Scouts \d+', re.IGNORECASE)
         matches = re.findall(ability_re, "".join(row))
@@ -138,7 +135,7 @@ def remove_duplicate_models(units_with_duplicates):
             # iterate through each model row to see if it's different from the last
             for model in unit.unit_model_stat_rows:
 
-                # if not, skip this model row and remember the name
+                # if the stats are exactly as the previous model, skip this model row and remember the name
                 if model[1:] == previous_stats:
                     removed_model_names += f" + {model[0]} "
                     continue
@@ -164,7 +161,33 @@ def write_list_to_csv(final_list):
 def shift_abilities_rows(list_with_abilities_rows):
     pass
 
-# TODO, refactor some of the shifting logic out of the "to rows" function, they are doing 2 different tasks
+
+def add_symbols_to_rows(list_to_change):
+
+    symbol_column_map = {
+        2:'"',
+        4:'+',
+    }
+
+    for row in list_to_change:
+        # add " to range column
+        try:
+            test = int(row[2])
+            row[2] = str(row[2]) + '"'
+        except ValueError:  # if we can't cast, keep the original value
+            pass
+
+        # add + to save column
+        try:
+            test = int(row[4])
+            row[4] = str(row[4]) + '+'
+        except ValueError:  # if we can't cast, keep the original value
+            pass
+
+
+
+
+# TODO, refactor some of the shifting logic out of the "to rows" function, it is doing multiple different tasks
 def unit_list_to_rows(unit_list):
     return_me = []
 
@@ -202,6 +225,10 @@ def unit_list_to_rows(unit_list):
     return_me.insert(0, ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks",
                                   "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg", "Keywords",
                                   "Abilities Shortened", "Abilities", "Description"])
+
+    add_symbols_to_rows(return_me)
+
+
     return return_me
 
 
