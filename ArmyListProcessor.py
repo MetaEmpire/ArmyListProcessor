@@ -185,7 +185,7 @@ def unit_list_to_rows(unit_list):
     for unit in unit_list:
         for model_row in unit.unit_model_stat_rows:
             model_row.insert(0, 1)
-            model_row += [0,0,0,0]
+            #model_row += [0,0,0,0]
             return_me.append(model_row)
             i += 1
 
@@ -193,13 +193,15 @@ def unit_list_to_rows(unit_list):
 
         for row in unit.ranged_rows + unit.melee_rows:
             row.insert(0, 0)
-            row += [0, 0, 0, 0]
+            row += ["", "", ""]
             return_me.append(row)
             i += 1
 
+        # logic for padding the units overall rows so the abilities will all fit to the right of the stat block.
         if (len(unit.ranged_rows) + len(unit.melee_rows)) < len(unit.ability_rows):
-            for y in range(1 + len(unit.ability_rows) - (len(unit.ranged_rows) + len(unit.melee_rows))):
-                return_me.append(list(range(12)))
+            for y in range(len(unit.ability_rows) - (len(unit.ranged_rows) + len(unit.melee_rows))):
+                #return_me.append(list(range(12)))
+                return_me.append(["" for i in range(12)])
                 i += 1
 
         for ability in unit.ability_rows:
@@ -210,7 +212,7 @@ def unit_list_to_rows(unit_list):
     # add header row
     return_me.insert(0, ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks",
                                   "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg", "Keywords",
-                                  "Abilities Shortened"])
+                                  "Abilities Shortened", "Abilities", "Description"])
     return return_me
 
 
