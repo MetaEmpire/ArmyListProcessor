@@ -246,11 +246,9 @@ def main():
     # remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
     no_duplicate_models = remove_duplicate_models(csv_to_units)
     # TODO: Expand this function to remove duplicate units (not only models) that just happen to have 1-2 weapon differences.
-    # example, 2 hammerhead tanks with the same guns except the main gun, shouldn't duplicate every row in the final output
+    # example, 2 hammerhead tanks with the same everything except the main gun, shouldn't duplicate every row in the final output
 
     # flatten units into simple rows
-    #TODO: Move the abilities rows to the right of the stat block with a column of space
-    #abilities_shifted_list = shift_abilities_rows(no_duplicate_models)
     final_list = unit_list_to_rows(no_duplicate_models)
 
     # output to a .csv
