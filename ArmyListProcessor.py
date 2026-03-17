@@ -178,14 +178,34 @@ def write_units_to_output(final_list):
 
 def unit_list_to_rows(unit_list):
     return_me = []
+
+    # iterate through every row of every unit, padding with a new column to help flag the start of new units
+    i = 0
+    start_of_unit_index = 0
     for unit in unit_list:
-        for model_rows in unit.unit_model_stat_rows:
-            model_rows.insert(0, 1)
-            return_me.append(model_rows)
-        #unit.ranged_rows + unit.melee_rows + unit.ability_rows
-        for row in unit.ranged_rows + unit.melee_rows + unit.ability_rows:
+        for model_row in unit.unit_model_stat_rows:
+            model_row.insert(0, 1)
+            model_row += [0,0,0,0]
+            return_me.append(model_row)
+            i += 1
+
+        start_of_unit_index = i
+
+        for row in unit.ranged_rows + unit.melee_rows:
             row.insert(0, 0)
+            row += [0, 0, 0, 0]
             return_me.append(row)
+            i += 1
+
+        if (len(unit.ranged_rows) + len(unit.melee_rows)) < len(unit.ability_rows):
+            for y in range(1 + len(unit.ability_rows) - (len(unit.ranged_rows) + len(unit.melee_rows))):
+                return_me.append(list(range(12)))
+                i += 1
+
+        for ability in unit.ability_rows:
+            return_me[start_of_unit_index][10] = ability[0]
+            return_me[start_of_unit_index][11] = ability[1]
+            start_of_unit_index += 1
 
     # add header row
     return_me.insert(0, ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks",
