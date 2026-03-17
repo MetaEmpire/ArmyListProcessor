@@ -191,6 +191,39 @@ def write_output(output_list):
         for tup in output_list:
             out_writer.writerow(tup[2])
 
+
+def remove_duplicate_models(units_with_duplicates):
+    return_me = []
+
+    for unit in units_with_duplicates:
+        previous_stats = list(range(6))
+        removed_model_names = ""
+        if len(unit.unit_model_stat_rows) > 1:
+            new_model_list = []
+
+            # iterate through each model row to see if it's different from the last
+            for model in unit.unit_model_stat_rows:
+
+                # if not, skip this model row and remember the name
+                if model[1:] == previous_stats:
+                    removed_model_names += f" + {model[0]} "
+                    continue
+                else:
+                    previous_stats = model[1:]
+                    new_model_list.append(model)
+
+            unit.unit_model_stat_rows = new_model_list
+            unit.unit_model_stat_rows[0][0] += removed_model_names
+
+        return_me.append(unit)
+
+    return return_me
+
+
+
+
+
+
 def main():
     # parse input file to a list of tuples, removing blank rows
     csv_to_tuples = parse_input_to_tuples(INPUT_FILE_NAME)
@@ -205,7 +238,11 @@ def main():
 
     # remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
     no_duplicates_list = remove_duplicate_statlines(sorted_list)
-
+    no_duplicate_models = remove_duplicate_models(csv_to_units)
+    for unit in no_duplicate_models:
+        print(unit.unit_model_stat_rows)
+    # TODO: Expand this function to remove duplicate units (not only models) that just happen to have 1-2 weapon differences.
+    # example, 2 hammerhead tanks with the same guns except the main gun, doesnt need its own entry.
 
     #TODO: Move the abilities rows to the right of the stat block with a column of space ( at index len(row)+1 )
     abilities_shifted_list = shift_abilities_rows(no_duplicates_list)
