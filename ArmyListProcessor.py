@@ -76,10 +76,10 @@ ABILITY_FILTER = ["Fly", "Markerlight", "Stealth", "Scouts 7", "Deep Strike", "D
 def handle_ability_row(unit, row):
     # TODO: process for common keywords like Fly, Deepstrike, grenades
     if row[0].lower() in ["rules", "categories"]:
-        ability_re = re.compile(r'(?:fly|Markerlight|Stealth|Deep Strike|Deadly Demise D?\d{1}|Scouts \d+)', re.IGNORECASE)
+        ability_re = re.compile(r'fly|Markerlight|Stealth|Deep Strike|Deadly Demise D?\d|Scouts \d+', re.IGNORECASE)
         matches = re.findall(ability_re, "".join(row))
         if len(matches) > 0:
-            unit.ability_rows.append([" ".join(matches), row[1]])
+            unit.ability_rows.append([", ".join(matches), row[1]])
     # if row has nothing in row 2, dump it
     elif row[1] == "":
         pass
