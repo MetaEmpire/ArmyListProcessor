@@ -231,9 +231,6 @@ def unit_list_to_rows(unit_list):
 
     return return_me
 
-def conflict_factory(fire):
-    return fire / 99
-
 
 def main():
     # parse input file to a list of unit objects
