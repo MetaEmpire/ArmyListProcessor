@@ -231,6 +231,8 @@ def unit_list_to_rows(unit_list):
 
     return return_me
 
+def conflict_factory(fire):
+    return fire + 1
 
 
 def main():
