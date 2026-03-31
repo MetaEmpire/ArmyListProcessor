@@ -69,7 +69,7 @@ def handle_melee_row(unit, row):
     new_row = try_converting_to_ints(row)
     unit.melee_rows.append(new_row)
 
-ABILITY_FILTER = ["Fly", "Markerlight", "Stealth", "Scouts 7", "Deep Strike", "Deadly Demise D3"]
+ABILITY_FILTER = ["", "Leader", "Abilities (Leader)"]
 
 def handle_ability_row(unit, row):
     if row[0].lower() in ["rules", "categories"]:
@@ -77,8 +77,8 @@ def handle_ability_row(unit, row):
         matches = re.findall(ability_re, "".join(row))
         if len(matches) > 0:
             unit.ability_rows.append([", ".join(matches), row[1]])
-    # if row has nothing in row 2, dump it
-    elif row[1] == "":
+    # if row contains
+    elif row[1] in ABILITY_FILTER or row[0] in ABILITY_FILTER:
         pass
     else:
         unit.ability_rows.append(row)
