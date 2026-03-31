@@ -237,10 +237,10 @@ def main():
     csv_to_units = parse_input_to_units(INPUT_FILE_NAME)
 
     # sort units by toughness and then sort ranged weapons by range.
-    csv_to_units.sort(key = lambda unit: unit.unit_model_stat_rows[0][2])
+    csv_to_units.sort(key = lambda unit: (unit.unit_model_stat_rows[0][2], unit.unit_model_stat_rows[0][1]))  # subsorting by toughness then movement
 
     for unit in csv_to_units:
-        unit.ranged_rows.sort(key = lambda row: row[1], reverse = True)
+        unit.ranged_rows.sort(key = lambda row: -row[1])  # negative to reverse sort order
 
     # remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
     no_duplicate_models = remove_duplicate_models(csv_to_units)
