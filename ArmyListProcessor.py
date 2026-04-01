@@ -73,12 +73,12 @@ ABILITY_FILTER = ["", "Leader", "Abilities (Leader)"]
 
 def handle_ability_row(unit, row):
     if row[0].lower() in ["rules", "categories"]:
-        ability_re = re.compile(r'fly|Markerlight|Stealth|Deep Strike|Deadly Demise D?\d|Scouts \d+', re.IGNORECASE)
+        ability_re = re.compile(r'fly|Markerlight|Stealth|Grenades|Deep Strike|Deadly Demise D?\d|Scouts \d+', re.IGNORECASE)
         matches = re.findall(ability_re, "".join(row))
         if len(matches) > 0:
             unit.ability_rows.append([", ".join(matches), row[1]])
     # if row contains
-    elif row[1] in ABILITY_FILTER or row[0] in ABILITY_FILTER:
+    elif row[0] in ABILITY_FILTER or row[1] in ABILITY_FILTER:
         pass
     else:
         unit.ability_rows.append(row)
