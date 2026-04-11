@@ -223,7 +223,7 @@ def unit_list_to_rows(unit_list):
 
     # add header row
     return_me.insert(0, ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks",
-                                  "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg", "Keywords",
+                                  "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg / OC", "Keywords",
                                   "Abilities Shortened", "Abilities", "Description"])
 
     add_symbols_to_rows(return_me)

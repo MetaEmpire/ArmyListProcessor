@@ -1,0 +1,10 @@
+XLoopup, used to check another sheet, version 1, checks column A and replaces with text in column B
+
+=IF(NOT(ISBLANK(K3)), XLOOKUP(K3,'Soraritas Abilities lookup'!A:A,'Soraritas Abilities lookup'!B:B,'Soraritas Abilities lookup'!C:C), "")
+
+
+
+
+Version 2, looking up the ability description and providing the short hand from the ability sheet.
+
+=IF(NOT(ISBLANK(L3)), XLOOKUP(L3,'Soraritas Abilities lookup'!C:C,'Soraritas Abilities lookup'!B:B,""), "")
