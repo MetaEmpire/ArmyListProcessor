@@ -100,7 +100,7 @@ def parse_input_to_units(input_file):
         "Ranged Weapons": handle_ranged_row,
         "Melee Weapons": handle_melee_row,
         "Rules": handle_ability_row,
-        #"Abilities": handle_ability_row,
+        "Abilities": handle_ability_row,
     }
 
     with open(input_file, mode="r", newline="", encoding="utf-8") as file:
@@ -120,6 +120,7 @@ def parse_input_to_units(input_file):
             # if we detect a header row change the handler state
             if row[0] in SECTION_MAP:
                 handler = SECTION_MAP[row[0]]
+                #if handler == "Rules":   # trying to save the "rules" header row from being thrown out. I want it processed like the Categories row is.
                 continue
 
             # if we aren't in a "header" row, process the line according to the current handler.
