@@ -19,6 +19,10 @@
 import re
 import csv
 
+ABILITIES_COLUMN = 11
+
+KEYWORDS_COLUMN = 9
+
 INPUT_FILE_NAME = "gsheetexport.csv"
 OUTPUT_FILE_NAME = "pyexport.csv"
 
@@ -72,12 +76,14 @@ def handle_melee_row(unit, row):
 ABILITY_FILTER = ["", "Leader", "Abilities (Leader)"]
 
 def handle_ability_row(unit, row):
+    # if row contains keywords, sort out the relevant keywords in a regex.
     if row[0].lower() in ["rules", "categories"]:
-        ability_re = re.compile(r'fly|Markerlight|Stealth|Grenades|Deep Strike|Deadly Demise D?\d|Scouts \d+', re.IGNORECASE)
+        ability_re = re.compile(r'fly|Markerlight|Infiltrators|Lone Operative|Stealth|Grenades|Deep Strike|Deadly Demise D?\d|Scouts \d+', re.IGNORECASE)
         matches = re.findall(ability_re, "".join(row))
+        # if any matches were found, append a row containing the condensed line and the original line
         if len(matches) > 0:
             unit.ability_rows.append([", ".join(matches), row[1]])
-    # if row contains
+    # if row contains certain unneeded strings, pass
     elif row[0] in ABILITY_FILTER or row[1] in ABILITY_FILTER:
         pass
     else:
@@ -93,8 +99,8 @@ def parse_input_to_units(input_file):
         "Unit": handle_name_row,
         "Ranged Weapons": handle_ranged_row,
         "Melee Weapons": handle_melee_row,
-        "Abilities": handle_ability_row,
         "Rules": handle_ability_row,
+        #"Abilities": handle_ability_row,
     }
 
     with open(input_file, mode="r", newline="", encoding="utf-8") as file:
@@ -218,8 +224,8 @@ def unit_list_to_rows(unit_list):
                 i += 1
 
         for ability in unit.ability_rows:
-            return_me[start_of_unit_index][9] = ability[0]
-            return_me[start_of_unit_index][11] = ability[1]
+            return_me[start_of_unit_index][KEYWORDS_COLUMN] = ability[0]
+            return_me[start_of_unit_index][ABILITIES_COLUMN] = ability[1]
             start_of_unit_index += 1
 
     # add header row
