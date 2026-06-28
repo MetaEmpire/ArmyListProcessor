@@ -94,6 +94,7 @@ def parse_input_to_units(input_file):
         "Ranged Weapons": handle_ranged_row,
         "Melee Weapons": handle_melee_row,
         "Abilities": handle_ability_row,
+        "Rules": handle_ability_row,
     }
 
     with open(input_file, mode="r", newline="", encoding="utf-8") as file:
@@ -217,14 +218,14 @@ def unit_list_to_rows(unit_list):
                 i += 1
 
         for ability in unit.ability_rows:
-            return_me[start_of_unit_index][10] = ability[0]
+            return_me[start_of_unit_index][9] = ability[0]
             return_me[start_of_unit_index][11] = ability[1]
             start_of_unit_index += 1
 
     # add header row
     return_me.insert(0, ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks",
                                   "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg / OC", "Keywords",
-                                  "Abilities Shortened", "Abilities", "Description"])
+                                  "Abilities", "Abilities Shortened", "Description"])
 
     add_symbols_to_rows(return_me)
 
