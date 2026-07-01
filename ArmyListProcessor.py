@@ -95,12 +95,12 @@ def parse_input_to_units(input_file):
 
     # function map (dict?)
     SECTION_MAP = {
-        "Move Up": handle_garbage_row,
-        "Unit": handle_name_row,
-        "Ranged Weapons": handle_ranged_row,
-        "Melee Weapons": handle_melee_row,
-        "Rules": handle_ability_row,
-        "Abilities": handle_ability_row,
+        "move up": handle_garbage_row,
+        "unit": handle_name_row,
+        "ranged weapons": handle_ranged_row,
+        "melee weapons": handle_melee_row,
+        "rules": handle_ability_row,
+        "abilities": handle_ability_row,
     }
 
     with open(input_file, mode="r", newline="", encoding="utf-8") as file:
@@ -110,20 +110,21 @@ def parse_input_to_units(input_file):
         handler = handle_garbage_row
 
         for row in csv_reader:
+            check_me = row[0].lower()
 
-            # this signifies that the current unit is done, and we're on a new unit
-            if handler != handle_garbage_row and row[0].lower() == "move up":
+            # this signifies that the current unit is done. Save the current unit and start a new one.
+            if handler != handle_garbage_row and check_me == "move up":
                 return_me.append(current_unit)
                 current_unit = Unit()
                 handler = handle_garbage_row
 
-            # if we detect a header row change the handler state
-            if row[0] in SECTION_MAP:
-                handler = SECTION_MAP[row[0]]
-                #if handler == "Rules":   # trying to save the "rules" header row from being thrown out. I want it processed like the Categories row is.
-                continue
+            # if we detect a header row change the handler state and check for header rows that need processing.
+            elif check_me in SECTION_MAP:
+                handler = SECTION_MAP[check_me]
+                if check_me == "rules":
+                    handler(current_unit,row)
 
-            # if we aren't in a "header" row, process the line according to the current handler.
+            # if we aren't in a header row, process the line according to the current handler.
             else:
                 handler(current_unit,row)
 
