@@ -103,6 +103,8 @@ def parse_input_to_units(input_file):
         "abilities": handle_ability_row,
     }
 
+    HEADERS_TO_KEEP = ["rules"]
+
     with open(input_file, mode="r", newline="", encoding="utf-8") as file:
         csv_reader = csv.reader(file)
 
@@ -121,7 +123,7 @@ def parse_input_to_units(input_file):
             # if we detect a header row change the handler state and check for header rows that need processing.
             elif check_me in SECTION_MAP:
                 handler = SECTION_MAP[check_me]
-                if check_me == "rules":
+                if check_me in HEADERS_TO_KEEP:
                     handler(current_unit,row)
 
             # if we aren't in a header row, process the line according to the current handler.
