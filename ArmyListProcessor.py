@@ -24,9 +24,8 @@ from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 from datetime import date
 
-ABILITIES_COLUMN = 11
-
 KEYWORDS_COLUMN = 9
+ABILITIES_COLUMN = 11
 
 ABILITY_FILTER = ["", "Leader", "Abilities (Leader)"]
 
@@ -34,8 +33,7 @@ INPUT_FILE_NAME = "gsheetexport.csv"
 OUTPUT_FILE_NAME = "pyexport.csv"
 
 # This formula is used in the final google sheet to look up abilities and their shorthand summaries. Todo pull this list from the cloud
-LOOKUP_FORMULA = r"=IF(NOT(ISBLANK(L3)), XLOOKUP(L3,'Tau abilities'!C:C,'Tau abilities'!B:B,""), "")"
-#LOOKUP_FORMULA = "=IF(NOT(ISBLANK(L3)), XLOOKUP(L3,'Soraritas Abilities lookup'!C:C,'Soraritas Abilities lookup'!B:B,""), "")"
+LOOKUP_FORMULA = "=IF(NOT(ISBLANK(LQ)), XLOOKUP(LQ,'ABILITY LOOKUP'!C:C,'ABILITY LOOKUP'!B:B,""), "")"
 
 
 # a unit represented by a collection of named lists, based on the rows from the input format
@@ -241,13 +239,13 @@ def unit_list_to_rows(unit_list):
         padding_rows_needed = len(unit.ability_rows) - (len(unit.ranged_rows) + len(unit.melee_rows))
         if padding_rows_needed > 0:
             for y in range(padding_rows_needed):
-                return_me.append(["" for i in range(12)])
+                return_me.append(["" for i in range(ABILITIES_COLUMN + 1)])
                 i += 1
 
         for ability in unit.ability_rows:
             return_me[start_of_unit_index][KEYWORDS_COLUMN] = ability[0]
-            return_me[start_of_unit_index][KEYWORDS_COLUMN + 1] = LOOKUP_FORMULA
-            return_me[start_of_unit_index][ABILITIES_COLUMN] = ability[1]
+            return_me[start_of_unit_index][KEYWORDS_COLUMN + 1] = LOOKUP_FORMULA.replace("Q", str(start_of_unit_index + 2))
+            return_me[start_of_unit_index][KEYWORDS_COLUMN + 2] = ability[1]
             start_of_unit_index += 1
 
     # add header row
@@ -281,7 +279,7 @@ def cloud_sheet_to_list(spreadsheet_key):
     sheet = spreadsheet.worksheet(os.getenv("SHEET_NAME"))
     return sheet.get_all_values(), spreadsheet
 
-def get_or_create_sheet(spreadsheet, name, rows=999, cols=13):
+def get_or_create_sheet(spreadsheet, name, rows=999, cols=12):
     try:
         return spreadsheet.worksheet(name)
     except gspread.exceptions.WorksheetNotFound:
