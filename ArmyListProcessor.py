@@ -22,29 +22,11 @@ import gspread
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 
-# Connecting to google service account, to operate on spreadsheets in cloud
-SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive",
-]
-
-creds = Credentials.from_service_account_file(
-    "credentials.json",
-    scopes=SCOPES
-)
-
-client = gspread.authorize(creds)
-
-# Import data from google sheet
-load_dotenv()
-spreadsheet = client.open_by_key(os.getenv("SPREADSHEET_KEY"))
-sheet = spreadsheet.worksheet("Montka Stormsurge")
-rows = sheet.get_all_values()
-
-
 ABILITIES_COLUMN = 11
 
 KEYWORDS_COLUMN = 9
+
+ABILITY_FILTER = ["", "Leader", "Abilities (Leader)"]
 
 INPUT_FILE_NAME = "gsheetexport.csv"
 OUTPUT_FILE_NAME = "pyexport.csv"
@@ -96,7 +78,7 @@ def handle_melee_row(unit, row):
     new_row = try_converting_to_ints(row)
     unit.melee_rows.append(new_row)
 
-ABILITY_FILTER = ["", "Leader", "Abilities (Leader)"]
+
 
 def handle_ability_row(unit, row):
     # if row contains keywords, sort out the relevant keywords in a regex.
@@ -112,8 +94,12 @@ def handle_ability_row(unit, row):
     else:
         unit.ability_rows.append(row)
 
+def csv_to_list(input_file):
+    with open(input_file, mode="r", newline="", encoding="utf-8") as file:
+        csv_reader = csv.reader(file)
+        return list(csv_reader)
 
-def parse_input_to_units(input_file):
+def parse_input_to_units(input_list):
     return_me = []
 
     # function map (dict?)
@@ -126,32 +112,33 @@ def parse_input_to_units(input_file):
         "abilities": handle_ability_row,
     }
 
-    HEADERS_TO_KEEP = ["rules"]
+    headers_to_keep = ["rules"]
 
-    with open(input_file, mode="r", newline="", encoding="utf-8") as file:
-        csv_reader = csv.reader(file)
 
-        current_unit = Unit()
-        handler = handle_garbage_row
+    # initialize handler state
+    handler = handle_garbage_row
 
-        for row in csv_reader:
-            check_me = row[0].lower()
+    current_unit = Unit()
 
-            # this signifies that the current unit is done. Save the current unit and start a new one.
-            if handler != handle_garbage_row and check_me == "move up":
-                return_me.append(current_unit)
-                current_unit = Unit()
-                handler = handle_garbage_row
+    # loop through list creating units, checking special header row keywords
+    for row in input_list:
+        check_me = row[0].lower()
 
-            # if we detect a header row change the handler state and check for header rows that need processing.
-            elif check_me in SECTION_MAP:
-                handler = SECTION_MAP[check_me]
-                if check_me in HEADERS_TO_KEEP:
-                    handler(current_unit,row)
+        # this signifies that the current unit is done. Save the current unit and start a new one.
+        if handler != handle_garbage_row and check_me == "move up":
+            return_me.append(current_unit)
+            current_unit = Unit()
+            handler = handle_garbage_row
 
-            # if we aren't in a header row, process the line according to the current handler.
-            else:
+        # if we detect a header row change the handler state and check for header rows that need processing.
+        elif check_me in SECTION_MAP:
+            handler = SECTION_MAP[check_me]
+            if check_me in headers_to_keep:
                 handler(current_unit,row)
+
+        # if we aren't in a header row, process the line according to the current handler.
+        else:
+            handler(current_unit,row)
 
     return return_me
 
@@ -266,27 +253,63 @@ def unit_list_to_rows(unit_list):
     return return_me
 
 
+def cloud_sheet_to_list(spreadsheet_key):
+    # Connecting to google service account, to operate on spreadsheets in cloud
+    SCOPES = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+
+    creds = Credentials.from_service_account_file(
+        "credentials.json",
+        scopes=SCOPES
+    )
+
+    client = gspread.authorize(creds)
+
+    # Import data from Google sheet
+
+    spreadsheet = client.open_by_key(spreadsheet_key)
+    sheet = spreadsheet.worksheet(os.getenv("SHEET_NAME"))
+    return sheet.get_all_values(), client
+
+
+
 def main():
+    # load input data
+
+    #input_data = csv_to_list(INPUT_FILE_NAME)
+    load_dotenv()  # exercise in hiding key in dotenv file, low risk but worth practicing.
+    input_data, gclient = cloud_sheet_to_list(os.getenv("SPREADSHEET_KEY"))
+
     # parse input file to a list of unit objects
-    csv_to_units = parse_input_to_units(INPUT_FILE_NAME)
+    units = parse_input_to_units(input_data)
 
     # sort units by toughness and then sort ranged weapons by range.
-    csv_to_units.sort(key = lambda unit: (unit.unit_model_stat_rows[0][2], unit.unit_model_stat_rows[0][1]))  # subsorting by toughness then movement
+    units.sort(key = lambda unit: (unit.unit_model_stat_rows[0][2], unit.unit_model_stat_rows[0][1]))  # subsorting by toughness then movement
 
-    for unit in csv_to_units:
+    for unit in units:
         unit.ranged_rows.sort(key = lambda row: -row[1])  # negative to reverse sort order
 
+    # TODO: Sort units by units they could lead, or units they are leading
+
     # remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
-    no_duplicate_models = remove_duplicate_models(csv_to_units)
+    no_duplicate_models = remove_duplicate_models(units)
     # TODO: Expand this function to remove duplicate units (not only models) that just happen to have 1-2 weapon differences.
     # example, 2 hammerhead tanks with the same everything except the main gun, shouldn't duplicate every row in the final output
 
-    # flatten units into simple rows
+    # flatten units into simple rows, reorganize ability text to save rows
     final_list = unit_list_to_rows(no_duplicate_models)
+
+    # add detachment/strategems to bottom of list
 
     # output to a .csv
     write_list_to_csv(final_list)
+    # output to cloud sheet
+    #gclient.write some stuff to sheet
 
+    # run formatting macro in cloud sheet
+    #gclient.run macro on sheet
 
 if __name__ == '__main__':
     main()
