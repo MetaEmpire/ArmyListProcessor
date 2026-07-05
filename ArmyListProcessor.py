@@ -21,6 +21,7 @@ import csv
 import gspread
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
+from datetime import date
 
 ABILITIES_COLUMN = 11
 
@@ -306,7 +307,11 @@ def main():
     # output to a .csv
     write_list_to_csv(final_list)
     # output to cloud sheet
-    #gclient.write some stuff to sheet
+
+    #
+    #gclient. create new sheet, name is date
+
+    #write each row of list to new row in sheet.
 
     # run formatting macro in cloud sheet
     #gclient.run macro on sheet
