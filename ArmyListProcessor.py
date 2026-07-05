@@ -6,7 +6,7 @@
 # process each non-header row according to the current state
 # process units to sort them, remove duplicates, and condense verbose abilities
 # write each unit out in rows with some extra columns that makes the output easier to format in a spreadsheet
-
+import os
 # example data from CSV input:
 ##['Unit', 'M', 'T', 'SV', 'W', 'LD', 'OC', '']
 ##['Cadre Fireblade', '6"', '3', '4+', '3', '7+', '1', '']
@@ -18,6 +18,29 @@
 
 import re
 import csv
+import gspread
+from google.oauth2.service_account import Credentials
+from dotenv import load_dotenv
+
+# Connecting to google service account, to operate on spreadsheets in cloud
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
+
+creds = Credentials.from_service_account_file(
+    "credentials.json",
+    scopes=SCOPES
+)
+
+client = gspread.authorize(creds)
+
+# Import data from google sheet
+load_dotenv()
+spreadsheet = client.open_by_key(os.getenv("SPREADSHEET_KEY"))
+sheet = spreadsheet.worksheet("Montka Stormsurge")
+rows = sheet.get_all_values()
+
 
 ABILITIES_COLUMN = 11
 
