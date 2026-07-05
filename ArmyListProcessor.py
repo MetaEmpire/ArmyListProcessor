@@ -6,7 +6,7 @@
 # process each non-header row according to the current state
 # process units to sort them, remove duplicates, and condense verbose abilities
 # write each unit out in rows with some extra columns that makes the output easier to format in a spreadsheet
-import os
+
 # example data from CSV input:
 ##['Unit', 'M', 'T', 'SV', 'W', 'LD', 'OC', '']
 ##['Cadre Fireblade', '6"', '3', '4+', '3', '7+', '1', '']
@@ -16,6 +16,7 @@ import os
 ##['Melee Weapons', 'Range', 'A', 'WS', 'S', 'AP', 'D', 'Keywords']
 ##['Close combat weapon', 'Melee', '3', '4+', '3', '0', '1', '-']
 
+import os
 import re
 import csv
 import gspread
@@ -31,6 +32,11 @@ ABILITY_FILTER = ["", "Leader", "Abilities (Leader)"]
 
 INPUT_FILE_NAME = "gsheetexport.csv"
 OUTPUT_FILE_NAME = "pyexport.csv"
+
+# This formula is used in the final google sheet to look up abilities and their shorthand summaries. Todo pull this list from the cloud
+LOOKUP_FORMULA = r"=IF(NOT(ISBLANK(L3)), XLOOKUP(L3,'Tau abilities'!C:C,'Tau abilities'!B:B,""), "")"
+#LOOKUP_FORMULA = "=IF(NOT(ISBLANK(L3)), XLOOKUP(L3,'Soraritas Abilities lookup'!C:C,'Soraritas Abilities lookup'!B:B,""), "")"
+
 
 # a unit represented by a collection of named lists, based on the rows from the input format
 class Unit:
@@ -240,6 +246,7 @@ def unit_list_to_rows(unit_list):
 
         for ability in unit.ability_rows:
             return_me[start_of_unit_index][KEYWORDS_COLUMN] = ability[0]
+            return_me[start_of_unit_index][KEYWORDS_COLUMN + 1] = LOOKUP_FORMULA
             return_me[start_of_unit_index][ABILITIES_COLUMN] = ability[1]
             start_of_unit_index += 1
 
@@ -268,12 +275,26 @@ def cloud_sheet_to_list(spreadsheet_key):
 
     client = gspread.authorize(creds)
 
-    # Import data from Google sheet
+    # Import data from Google sheet, and return the spreadsheet for future use
 
     spreadsheet = client.open_by_key(spreadsheet_key)
     sheet = spreadsheet.worksheet(os.getenv("SHEET_NAME"))
-    return sheet.get_all_values(), client
+    return sheet.get_all_values(), spreadsheet
 
+def get_or_create_sheet(spreadsheet, name, rows=999, cols=13):
+    try:
+        return spreadsheet.worksheet(name)
+    except gspread.exceptions.WorksheetNotFound:
+        return spreadsheet.add_worksheet(name, rows=rows, cols=cols)
+
+def write_list_to_cloud_sheet(final_list, spreadsheet):
+
+    # create new cloud sheet, name is date
+    today = date.today()
+    date_formatted = today.strftime("%d/%m/%y")
+    new_sheet = get_or_create_sheet(spreadsheet, date_formatted)
+    # write list to sheet.
+    new_sheet.update(final_list, value_input_option='USER_ENTERED')
 
 
 def main():
@@ -281,7 +302,7 @@ def main():
 
     #input_data = csv_to_list(INPUT_FILE_NAME)
     load_dotenv()  # exercise in hiding key in dotenv file, low risk but worth practicing.
-    input_data, gclient = cloud_sheet_to_list(os.getenv("SPREADSHEET_KEY"))
+    input_data, gspreadsheet = cloud_sheet_to_list(os.getenv("SPREADSHEET_KEY"))
 
     # parse input file to a list of unit objects
     units = parse_input_to_units(input_data)
@@ -307,14 +328,10 @@ def main():
     # output to a .csv
     write_list_to_csv(final_list)
     # output to cloud sheet
-
-    #
-    #gclient. create new sheet, name is date
-
-    #write each row of list to new row in sheet.
+    write_list_to_cloud_sheet(final_list, gspreadsheet)
 
     # run formatting macro in cloud sheet
-    #gclient.run macro on sheet
+    #gclient.run macro on sheet # This macro functionality does not appear to be available easily.
 
 if __name__ == '__main__':
     main()
