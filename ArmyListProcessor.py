@@ -22,19 +22,18 @@ import csv
 import gspread
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
-from datetime import date
+from datetime import datetime
 
 KEYWORDS_COLUMN = 9
 ABILITIES_COLUMN = 11
 
 ABILITY_FILTER = ["", "Leader", "Abilities (Leader)"]
 
-INPUT_FILE_NAME = "gsheetexport.csv"
+HEADER_ROWS = ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks",
+                                  "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg / OC", "Keywords",
+                                  "Abilities", "Abilities Shortened"]
+
 OUTPUT_FILE_NAME = "pyexport.csv"
-
-# This formula is used in the final google sheet to look up abilities and their shorthand summaries. Todo pull this list from the cloud
-LOOKUP_FORMULA = "=IF(NOT(ISBLANK(LQ)), XLOOKUP(LQ,'ABILITY LOOKUP'!C:C,'ABILITY LOOKUP'!B:B,""), "")"
-
 
 # a unit represented by a collection of named lists, based on the rows from the input format
 class Unit:
@@ -82,7 +81,6 @@ def handle_ranged_row(unit, row):
 def handle_melee_row(unit, row):
     new_row = try_converting_to_ints(row)
     unit.melee_rows.append(new_row)
-
 
 
 def handle_ability_row(unit, row):
@@ -214,50 +212,56 @@ def add_symbols_to_rows(list_to_change):
 
 
 # TODO, refactor some of the shifting logic out of the "to rows" function, it is doing multiple different tasks
-def unit_list_to_rows(unit_list):
+def unit_list_to_rows(unit_list, ability_shorthand_dict):
     return_me = []
 
     # iterate through every row of every unit, padding with a new column to help flag the start of new units
     i = 0
     start_of_unit_index = 0
     for unit in unit_list:
+
+
+
+        # insert stat block rows for unit models and their weapons
         for model_row in unit.unit_model_stat_rows:
             model_row.insert(0, 1)
             #model_row += [0,0,0,0]
             return_me.append(model_row)
             i += 1
 
+        # note the starting row of the unit, for use later when inserting abilities to the right of their stat block
         start_of_unit_index = i
 
         for row in unit.ranged_rows + unit.melee_rows:
             row.insert(0, 0)
-            row += ["", "", ""]
+            row += ["", ""]
             return_me.append(row)
             i += 1
 
-        # logic for padding the units overall rows so the abilities will all fit to the right of the stat block.
+        # insert the units abilities to the right of the stats, padding rows if needed to prevent spilling into next unit
         padding_rows_needed = len(unit.ability_rows) - (len(unit.ranged_rows) + len(unit.melee_rows))
+
+
         if padding_rows_needed > 0:
             for y in range(padding_rows_needed):
-                return_me.append(["" for i in range(ABILITIES_COLUMN + 1)])
+                return_me.append(["" for i in range(ABILITIES_COLUMN)])
                 i += 1
 
         for ability in unit.ability_rows:
             return_me[start_of_unit_index][KEYWORDS_COLUMN] = ability[0]
 
-            #TODO download and insert ability shorthands, using gsheet table
-            return_me[start_of_unit_index][KEYWORDS_COLUMN + 1] = LOOKUP_FORMULA.replace("Q", str(start_of_unit_index + 2))
-            #return_me[start_of_unit_index][KEYWORDS_COLUMN + 1] = ability_shorthands[ability[1]]
-            return_me[start_of_unit_index][KEYWORDS_COLUMN + 2] = ability[1]
+            # insert ability short summaries, using input dict
+            try:
+                return_me[start_of_unit_index][KEYWORDS_COLUMN + 1] = ability_shorthand_dict[ability[1]]
+            except KeyError: # if we don't find the ability, just leave this space blank and move on
+                pass
+
             start_of_unit_index += 1
 
-    # add header row
-    return_me.insert(0, ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks",
-                                  "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg / OC", "Keywords",
-                                  "Abilities", "Abilities Shortened", "Description"])
+    return_me.insert(0, HEADER_ROWS)
 
+    # add symbols for readability, like inches and plus signs.
     add_symbols_to_rows(return_me)
-
 
     return return_me
 
@@ -278,36 +282,33 @@ def get_cloud_spreadsheet(spreadsheet_key):
     except:
         print("Error while getting google spreadsheet. Check credentials JSON and dotenv. Spreadsheet key I tried to use: {}".format(spreadsheet_key))
 
-def get_or_create_sheet(spreadsheet, name, rows=999, cols=12):
+def get_or_create_sheet(spreadsheet, name, rows=999, cols=ABILITIES_COLUMN):
     try:
         return spreadsheet.worksheet(name)
     except gspread.exceptions.WorksheetNotFound:
         return spreadsheet.add_worksheet(name, rows=rows, cols=cols)
 
 def write_list_to_cloud_sheet(final_list, spreadsheet):
-
     # create new cloud sheet, name is date
-    today = date.today()
-    date_formatted = today.strftime("%d/%m/%y")
+    today = datetime.now()
+    date_formatted = today.strftime("%m/%d/%y %H:%M:%S")
     new_sheet = get_or_create_sheet(spreadsheet, date_formatted)
     # write list to sheet.
-    new_sheet.update(final_list, value_input_option='USER_ENTERED')
-
+    new_sheet.update(final_list)
 
 def main():
-    # load input data
+    # pull spreadsheet and get a list from it
     load_dotenv()  # exercise in hiding key in dotenv file, low risk but worth practicing.
     gspreadsheet = get_cloud_spreadsheet(os.getenv("SPREADSHEET_KEY"))
-
-    # pull named sheet from spreadsheet, and get a list from it
     input_data = get_or_create_sheet(gspreadsheet, os.getenv("RAW_DATA_SHEET_NAME")).get_all_values()
 
     # parse input file to a list of unit objects
     units = parse_input_to_units(input_data)
 
-    # sort units by toughness and then sort ranged weapons by range.
-    units.sort(key = lambda unit: (unit.unit_model_stat_rows[0][2], unit.unit_model_stat_rows[0][1]))  # subsorting by toughness then movement
+    # sort units by toughness
+    units.sort(key = lambda unit: (unit.unit_model_stat_rows[0][2], unit.unit_model_stat_rows[0][1]))
 
+    # Within each unit sort ranged weapons by range
     for unit in units:
         unit.ranged_rows.sort(key = lambda row: -row[1])  # negative to reverse sort order
 
@@ -319,7 +320,10 @@ def main():
     # example, 2 hammerhead tanks with the same everything except the main gun, shouldn't duplicate every row in the final output
 
     # flatten units into simple rows, reorganize ability text to save rows
-    final_list = unit_list_to_rows(no_duplicate_models)
+    ability_shorthand_list = get_or_create_sheet(gspreadsheet, os.getenv("ABILITY_LOOKUP_SHEET_NAME")).get_all_values()
+    ability_shorthand_dict = {row[2]: row[1] for row in ability_shorthand_list}
+
+    final_list = unit_list_to_rows(no_duplicate_models, ability_shorthand_dict)
 
     # add detachment/strategems to bottom of list
 
