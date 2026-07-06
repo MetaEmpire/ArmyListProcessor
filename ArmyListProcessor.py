@@ -244,7 +244,10 @@ def unit_list_to_rows(unit_list):
 
         for ability in unit.ability_rows:
             return_me[start_of_unit_index][KEYWORDS_COLUMN] = ability[0]
+
+            #TODO download and insert ability shorthands, using gsheet table
             return_me[start_of_unit_index][KEYWORDS_COLUMN + 1] = LOOKUP_FORMULA.replace("Q", str(start_of_unit_index + 2))
+            #return_me[start_of_unit_index][KEYWORDS_COLUMN + 1] = ability_shorthands[ability[1]]
             return_me[start_of_unit_index][KEYWORDS_COLUMN + 2] = ability[1]
             start_of_unit_index += 1
 
@@ -258,8 +261,7 @@ def unit_list_to_rows(unit_list):
 
     return return_me
 
-
-def cloud_sheet_to_list(spreadsheet_key):
+def get_cloud_spreadsheet(spreadsheet_key):
     # Connecting to google service account, to operate on spreadsheets in cloud
     SCOPES = [
         "https://www.googleapis.com/auth/spreadsheets",
@@ -270,14 +272,11 @@ def cloud_sheet_to_list(spreadsheet_key):
         "credentials.json",
         scopes=SCOPES
     )
-
-    client = gspread.authorize(creds)
-
-    # Import data from Google sheet, and return the spreadsheet for future use
-
-    spreadsheet = client.open_by_key(spreadsheet_key)
-    sheet = spreadsheet.worksheet(os.getenv("SHEET_NAME"))
-    return sheet.get_all_values(), spreadsheet
+    try:
+        client = gspread.authorize(creds)
+        return client.open_by_key(spreadsheet_key)
+    except:
+        print("Error while getting google spreadsheet. Check credentials JSON and dotenv. Spreadsheet key I tried to use: {}".format(spreadsheet_key))
 
 def get_or_create_sheet(spreadsheet, name, rows=999, cols=12):
     try:
@@ -297,10 +296,11 @@ def write_list_to_cloud_sheet(final_list, spreadsheet):
 
 def main():
     # load input data
-
-    #input_data = csv_to_list(INPUT_FILE_NAME)
     load_dotenv()  # exercise in hiding key in dotenv file, low risk but worth practicing.
-    input_data, gspreadsheet = cloud_sheet_to_list(os.getenv("SPREADSHEET_KEY"))
+    gspreadsheet = get_cloud_spreadsheet(os.getenv("SPREADSHEET_KEY"))
+
+    # pull named sheet from spreadsheet, and get a list from it
+    input_data = get_or_create_sheet(gspreadsheet, os.getenv("RAW_DATA_SHEET_NAME")).get_all_values()
 
     # parse input file to a list of unit objects
     units = parse_input_to_units(input_data)
@@ -311,7 +311,7 @@ def main():
     for unit in units:
         unit.ranged_rows.sort(key = lambda row: -row[1])  # negative to reverse sort order
 
-    # TODO: Sort units by units they could lead, or units they are leading
+    # TODO: Sort units by units they could lead, or units they are leading. This currently happens naturally as many leaders have matching toughness to the units they lead.
 
     # remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
     no_duplicate_models = remove_duplicate_models(units)
