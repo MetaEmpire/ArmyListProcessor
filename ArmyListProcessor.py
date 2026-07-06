@@ -30,7 +30,7 @@ ABILITIES_COLUMN = 11
 ABILITY_FILTER = ["", "Leader", "Abilities (Leader)"]
 
 HEADER_ROWS = ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks",
-                                  "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg / OC", "Keywords",
+                                  "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg / OC", "Keywords / InvS",
                                   "Abilities", "Abilities Shortened"]
 
 OUTPUT_FILE_NAME = "pyexport.csv"
@@ -208,30 +208,32 @@ def add_symbols_to_rows(list_to_change):
         except ValueError:  # if we can't cast, keep the original value
             pass
 
+        # add ++ to Invulnerable Save column TODO: combine this value into the save column
+        try:
+            test = int(row[8])
+            row[4] = row[4] + " / " + str(row[8]) + '++'
+            row[8] = ""
+        except ValueError:  # if we can't cast, keep the original value
+            pass
 
 
-
-# TODO, refactor some of the shifting logic out of the "to rows" function, it is doing multiple different tasks
 def unit_list_to_rows(unit_list, ability_shorthand_dict):
-    return_me = []
+    return_me = [HEADER_ROWS]
 
     # iterate through every row of every unit, padding with a new column to help flag the start of new units
-    i = 0
-    start_of_unit_index = 0
+    i = 1 # skip 1 row for header row
     for unit in unit_list:
 
-
-
-        # insert stat block rows for unit models and their weapons
+        # insert stat block rows for unit models
         for model_row in unit.unit_model_stat_rows:
             model_row.insert(0, 1)
-            #model_row += [0,0,0,0]
             return_me.append(model_row)
             i += 1
 
-        # note the starting row of the unit, for use later when inserting abilities to the right of their stat block
-        start_of_unit_index = i
+        # note the starting row of the unit, for use later when inserting abilities to the right of their stat block starting with this row
+        start_of_unit_row = i
 
+        # insert weapon stat blocks
         for row in unit.ranged_rows + unit.melee_rows:
             row.insert(0, 0)
             row += ["", ""]
@@ -241,24 +243,21 @@ def unit_list_to_rows(unit_list, ability_shorthand_dict):
         # insert the units abilities to the right of the stats, padding rows if needed to prevent spilling into next unit
         padding_rows_needed = len(unit.ability_rows) - (len(unit.ranged_rows) + len(unit.melee_rows))
 
-
         if padding_rows_needed > 0:
             for y in range(padding_rows_needed):
                 return_me.append(["" for i in range(ABILITIES_COLUMN)])
                 i += 1
 
         for ability in unit.ability_rows:
-            return_me[start_of_unit_index][KEYWORDS_COLUMN] = ability[0]
+            return_me[start_of_unit_row][KEYWORDS_COLUMN] = ability[0]
 
             # insert ability short summaries, using input dict
             try:
-                return_me[start_of_unit_index][KEYWORDS_COLUMN + 1] = ability_shorthand_dict[ability[1]]
+                return_me[start_of_unit_row][KEYWORDS_COLUMN + 1] = ability_shorthand_dict[ability[1]]
             except KeyError: # if we don't find the ability, just leave this space blank and move on
                 pass
 
-            start_of_unit_index += 1
-
-    return_me.insert(0, HEADER_ROWS)
+            start_of_unit_row += 1
 
     # add symbols for readability, like inches and plus signs.
     add_symbols_to_rows(return_me)
@@ -319,6 +318,7 @@ def main():
     # TODO: Expand this function to remove duplicate units (not only models) that just happen to have 1-2 weapon differences.
     # example, 2 hammerhead tanks with the same everything except the main gun, shouldn't duplicate every row in the final output
 
+    # TODO: Refactor ability logic to its own function. "unit_list_to_rows()" is too complex right now
     # flatten units into simple rows, reorganize ability text to save rows
     ability_shorthand_list = get_or_create_sheet(gspreadsheet, os.getenv("ABILITY_LOOKUP_SHEET_NAME")).get_all_values()
     ability_shorthand_dict = {row[2]: row[1] for row in ability_shorthand_list}
