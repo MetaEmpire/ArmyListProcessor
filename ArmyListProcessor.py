@@ -19,11 +19,13 @@
 import os
 import re
 import csv
-import gspread
-from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 from datetime import datetime
 
+import gspread
+from google.oauth2.service_account import Credentials
+
+CLOUD_OUTPUT_MODE = False  # toggle this to stop outputting to cloud, for debugging
 KEYWORDS_COLUMN = 9
 ABILITIES_COLUMN = 11
 
@@ -117,7 +119,6 @@ def parse_input_to_units(input_list):
 
     headers_to_keep = ["rules"]
 
-
     # initialize handler state
     handler = handle_garbage_row
 
@@ -145,11 +146,12 @@ def parse_input_to_units(input_list):
 
     return return_me
 
+#TODO: Verify if this will work with units made up of more than 2 stat profiles.
 def remove_duplicate_models(units_with_duplicates):
     return_me = []
 
     for unit in units_with_duplicates:
-        previous_stats = list(range(6))
+        previous_stats = list(range(6)) # initial dummy data to compare to
         removed_model_names = ""
 
         # check to see if this unit even has duplicates to consider
@@ -191,6 +193,7 @@ def add_symbols_to_rows(list_to_change):
     symbol_column_map = {
         2:'"',
         4:'+',
+        8:'++',
     }
 
     for row in list_to_change:
@@ -208,7 +211,7 @@ def add_symbols_to_rows(list_to_change):
         except ValueError:  # if we can't cast, keep the original value
             pass
 
-        # add ++ to Invulnerable Save column TODO: combine this value into the save column
+        # add ++ to Invulnerable Save column and consolidate into regular Save column.
         try:
             test = int(row[8])
             row[4] = row[4] + " / " + str(row[8]) + '++'
@@ -220,7 +223,7 @@ def add_symbols_to_rows(list_to_change):
 def unit_list_to_rows(unit_list, ability_shorthand_dict):
     return_me = [HEADER_ROWS]
 
-    # iterate through every row of every unit, padding with a new column to help flag the start of new units
+    # iterate through every row of every unit, adding a new column to help flag the start of new units. Used in formatting later in the workflow.
     i = 1 # skip 1 row for header row
     for unit in unit_list:
 
@@ -281,7 +284,7 @@ def get_cloud_spreadsheet(spreadsheet_key):
     except:
         print("Error while getting google spreadsheet. Check credentials JSON and dotenv. Spreadsheet key I tried to use: {}".format(spreadsheet_key))
 
-def get_or_create_sheet(spreadsheet, name, rows=999, cols=ABILITIES_COLUMN):
+def get_or_create_sheet(spreadsheet, name, rows=300, cols=ABILITIES_COLUMN):
     try:
         return spreadsheet.worksheet(name)
     except gspread.exceptions.WorksheetNotFound:
@@ -295,6 +298,34 @@ def write_list_to_cloud_sheet(final_list, spreadsheet):
     # write list to sheet.
     new_sheet.update(final_list)
 
+    # Sorts units and their stats. Removes duplicate stat rows. Reorganizes ability cells to save space.
+def process_unit_list(units, gspreadsheet):
+    # sort units by toughness
+    units.sort(key=lambda unit: (unit.unit_model_stat_rows[0][2], unit.unit_model_stat_rows[0][1]))
+
+    # Within each unit sort ranged weapons by range
+    for unit in units:
+        unit.ranged_rows.sort(key=lambda row: -row[1])  # negative to reverse sort order
+
+    # TODO: Sort units by units they could lead, or units they are leading. This currently happens naturally as many leaders have matching toughness to the units they lead.
+
+    # remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
+    no_duplicate_models = remove_duplicate_models(units)
+    # TODO: Expand this function to remove duplicate units (not only models) that just happen to have 1-2 weapon differences.
+    # example, 2 hammerhead tanks with the same everything except the main gun, shouldn't duplicate every row in the final output
+
+    # reference a cloud sheet for a list of ability shorthands
+    ability_shorthand_list = get_or_create_sheet(gspreadsheet, os.getenv("ABILITY_LOOKUP_SHEET_NAME")).get_all_values()
+    ability_shorthand_dict = {row[2]: row[1] for row in ability_shorthand_list}
+
+    # TODO: Refactor ability logic to its own function. "unit_list_to_rows()" is too complex right now
+    # flatten units into simple rows, move ability text cells to save rows
+    final_list = unit_list_to_rows(no_duplicate_models, ability_shorthand_dict)
+
+    # TODO: add detachment/strategems to bottom of list
+
+    return final_list
+
 def main():
     # pull spreadsheet and get a list from it
     load_dotenv()  # exercise in hiding key in dotenv file, low risk but worth practicing.
@@ -304,36 +335,19 @@ def main():
     # parse input file to a list of unit objects
     units = parse_input_to_units(input_data)
 
-    # sort units by toughness
-    units.sort(key = lambda unit: (unit.unit_model_stat_rows[0][2], unit.unit_model_stat_rows[0][1]))
+    final_list = process_unit_list(units, gspreadsheet)
 
-    # Within each unit sort ranged weapons by range
-    for unit in units:
-        unit.ranged_rows.sort(key = lambda row: -row[1])  # negative to reverse sort order
-
-    # TODO: Sort units by units they could lead, or units they are leading. This currently happens naturally as many leaders have matching toughness to the units they lead.
-
-    # remove duplicate stat unit rows (infantry squads and their sargent who have the exact same stats)
-    no_duplicate_models = remove_duplicate_models(units)
-    # TODO: Expand this function to remove duplicate units (not only models) that just happen to have 1-2 weapon differences.
-    # example, 2 hammerhead tanks with the same everything except the main gun, shouldn't duplicate every row in the final output
-
-    # TODO: Refactor ability logic to its own function. "unit_list_to_rows()" is too complex right now
-    # flatten units into simple rows, reorganize ability text to save rows
-    ability_shorthand_list = get_or_create_sheet(gspreadsheet, os.getenv("ABILITY_LOOKUP_SHEET_NAME")).get_all_values()
-    ability_shorthand_dict = {row[2]: row[1] for row in ability_shorthand_list}
-
-    final_list = unit_list_to_rows(no_duplicate_models, ability_shorthand_dict)
-
-    # add detachment/strategems to bottom of list
-
-    # output to a .csv
+    # output
     write_list_to_csv(final_list)
-    # output to cloud sheet
-    write_list_to_cloud_sheet(final_list, gspreadsheet)
+    if CLOUD_OUTPUT_MODE:
+        write_list_to_cloud_sheet(final_list, gspreadsheet)
 
     # run formatting macro in cloud sheet
-    #gclient.run macro on sheet # This macro functionality does not appear to be available easily.
+    #gspreadsheet.run macro on sheet # This macro functionality does not appear to be available easily.
+
+
+
+
 
 if __name__ == '__main__':
     main()
