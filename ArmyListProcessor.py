@@ -84,7 +84,7 @@ def handle_melee_row(unit, row):
 
 
 def handle_ability_row(unit, row):
-    # if row contains keywords, sort out the relevant keywords in a regex.
+    # if row contains keywords, sort out the relevant keywords in a regex. #TODO Combine any regex rules into a single entry, to avoid having barely filled rows.
     if row[0].lower() in ["rules", "categories"]:
         ability_re = re.compile(r'fly|Markerlight|Infiltrators|Lone Operative|Stealth|Grenades|Deep Strike|Deadly Demise D?\d|Scouts \d+', re.IGNORECASE)
         matches = re.findall(ability_re, "".join(row))
