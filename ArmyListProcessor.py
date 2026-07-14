@@ -31,8 +31,8 @@ ABILITIES_COLUMN = 11
 
 ABILITY_FILTER = ["", "Leader", "Abilities (Leader)"]
 
-HEADER_ROWS = ["Unit Header Flag", "Unit Name", "Move / Range", "Tough / Attacks",
-                                  "Save / BS", "Wounds / Strength", "Lead / AP", "Dmg / OC", "Keywords / InvS",
+HEADER_ROWS = ["Unit Header Flag", "Unit Name", "Move / Range", "T / A",
+                                  "Save / BS", "W / S", "Lead / AP", "Dmg / OC", "Keywords / InvS",
                                   "Abilities", "Abilities Shortened"]
 
 OUTPUT_FILE_NAME = "pyexport.csv"
@@ -76,7 +76,7 @@ def handle_name_row(unit, row):
 def handle_ranged_row(unit, row):
     # if row contains the pistol keyword move the weapon into the melee list
     new_row = try_converting_to_ints(row)
-    if "pistol" in new_row[7].lower():
+    if "pistol" in new_row[7].lower() or "close-quarters" in new_row[7].lower():
         handle_melee_row(unit, new_row)
     else:
         unit.ranged_rows.append(new_row)
