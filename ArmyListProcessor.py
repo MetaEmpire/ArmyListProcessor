@@ -25,11 +25,11 @@ from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
 
-CLOUD_OUTPUT_MODE = True  # toggle this to stop outputting to cloud, for debugging
+CLOUD_OUTPUT_MODE = False  # toggle this to stop outputting to cloud, for debugging
 KEYWORDS_COLUMN = 9
 ABILITIES_COLUMN = 11
 
-ABILITY_FILTER = ["", "Support", "Leader", "Abilities (Leader)"]
+ABILITY_FILTER = ["", "Support", "Leader", "Abilities (Leader)", "Transport"]
 
 HEADER_ROWS = ["Unit Header Flag", "Unit Name", "Move / Range", "T / A",
                                   "Save / BS", "W / S", "Lead / AP", "Dmg / OC", "Keywords / InvS",
@@ -262,8 +262,8 @@ def unit_list_to_rows(unit_list, ability_shorthand_dict):
             # insert ability short summaries, using input dict
             try:
                 return_me[start_of_unit_row][KEYWORDS_COLUMN + 1] = ability_shorthand_dict[ability[1]]
-            except KeyError: # if we don't find the ability, just leave this space blank and move on
-                pass
+            except KeyError: # if we don't find the ability shorthand, put the original full text
+                return_me[start_of_unit_row][KEYWORDS_COLUMN + 1] = ability[1]
 
             start_of_unit_row += 1
 
