@@ -25,7 +25,7 @@ from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
 
-CLOUD_OUTPUT_MODE = False  # toggle this to stop outputting to cloud, for debugging
+CLOUD_OUTPUT_MODE = True  # toggle this to stop outputting to cloud, for debugging
 KEYWORDS_COLUMN = 9
 ABILITIES_COLUMN = 11
 
@@ -75,6 +75,7 @@ def handle_name_row(unit, row):
     # cast everything that can be to an int
     new_row = try_converting_to_ints(row)
     unit.unit_model_stat_rows.append(new_row)
+
 def handle_ranged_row(unit, row):
     # if row contains the pistol keyword move the weapon into the melee list
     new_row = try_converting_to_ints(row)
@@ -82,6 +83,7 @@ def handle_ranged_row(unit, row):
         handle_melee_row(unit, new_row)
     else:
         unit.ranged_rows.append(new_row)
+
 def handle_melee_row(unit, row):
     new_row = try_converting_to_ints(row)
     unit.melee_rows.append(new_row)
@@ -94,21 +96,13 @@ def handle_keyword_row(unit, row):
     if len(matches) > 0:
         unit.keyword_rows.append([", ".join(matches), row[1]])
 
-#TODO Combine any regex rules into a new field, consolidate them into a single row (side by side in the output)
+
 def handle_ability_row(unit, row):
-    # # if row contains keywords, sort out the relevant keywords in a regex.
-    # if row[0].lower() in ["rules", "categories"]:
-    #     pattern = r'fly|Markerlight|Infiltrators|Lone Operative|Stealth|Grenades|Deep Strike|Deadly Demise D?[0-9]?\+?[0-9]|Scouts \d+'
-    #     ability_re = re.compile(pattern, re.IGNORECASE)
-    #     matches = re.findall(ability_re, "".join(row))
-    #     # if any matches were found, append a row containing the condensed line and the original line
-    #     if len(matches) > 0:
-    #         unit.ability_rows.append([", ".join(matches), row[1]])
-    # if row contains certain unneeded strings, pass
-    if row[0] in ABILITY_FILTER or row[1] in ABILITY_FILTER:
+    if row[0] in ABILITY_FILTER or row[1] in ABILITY_FILTER:  # todo this could be handled in the garbage handler instead?
         pass
     else:
         unit.ability_rows.append(row)
+
 
 def csv_to_list(input_file):
     with open(input_file, mode="r", newline="", encoding="utf-8") as file:
