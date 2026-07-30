@@ -29,7 +29,7 @@ CLOUD_OUTPUT_MODE = False  # toggle this to stop outputting to cloud, for debugg
 KEYWORDS_COLUMN = 9
 ABILITIES_COLUMN = 11
 
-ABILITY_FILTER = ["", "Leader", "Abilities (Leader)"]
+ABILITY_FILTER = ["", "Support", "Leader", "Abilities (Leader)"]
 
 HEADER_ROWS = ["Unit Header Flag", "Unit Name", "Move / Range", "T / A",
                                   "Save / BS", "W / S", "Lead / AP", "Dmg / OC", "Keywords / InvS",
@@ -44,6 +44,7 @@ class Unit:
         self.ranged_rows = []
         self.melee_rows = []
         self.ability_rows = []
+        self.keyword_rows = []
 
     # return the name of the first model in the unit
     def __str__(self):
@@ -69,6 +70,7 @@ def try_converting_to_ints(list_of_strings):
 
 def handle_garbage_row(unit, row):
     pass
+
 def handle_name_row(unit, row):
     # cast everything that can be to an int
     new_row = try_converting_to_ints(row)
@@ -84,9 +86,17 @@ def handle_melee_row(unit, row):
     new_row = try_converting_to_ints(row)
     unit.melee_rows.append(new_row)
 
+def handle_keyword_row(unit, row):
+    pattern = r'fly|Markerlight|Infiltrators|Lone Operative|Stealth|Grenades|Deep Strike|Deadly Demise D?[0-9]?\+?[0-9]|Scouts \d+'
+    keyword_re = re.compile(pattern, re.IGNORECASE)
+    matches = re.findall(keyword_re, "".join(row))
+    # if any matches were found, append a row containing the condensed line and the original line
+    if len(matches) > 0:
+        unit.keyword_rows.append([", ".join(matches), row[1]])
 
+#TODO Combine any regex rules into a new field, consolidate them into a single row (side by side in the output)
 def handle_ability_row(unit, row):
-    # if row contains keywords, sort out the relevant keywords in a regex. #TODO Combine any regex rules into a single entry, to avoid having barely filled rows.
+    # if row contains keywords, sort out the relevant keywords in a regex.
     if row[0].lower() in ["rules", "categories"]:
         pattern = r'fly|Markerlight|Infiltrators|Lone Operative|Stealth|Grenades|Deep Strike|Deadly Demise D?[0-9]?\+?[0-9]|Scouts \d+'
         ability_re = re.compile(pattern, re.IGNORECASE)
@@ -114,11 +124,12 @@ def parse_input_to_units(input_list):
         "unit": handle_name_row,
         "ranged weapons": handle_ranged_row,
         "melee weapons": handle_melee_row,
-        "rules": handle_ability_row,
         "abilities": handle_ability_row,
+        "rules": handle_keyword_row,
+        "categories": handle_keyword_row,
     }
 
-    headers_to_keep = ["rules"]
+    headers_to_keep = ["rules", "categories"]
 
     # initialize handler state
     handler = handle_garbage_row
@@ -185,13 +196,12 @@ def write_list_to_csv(final_list):
         for row in final_list:
             out_writer.writerow(row)
 
-def shift_abilities_rows(list_with_abilities_rows):
-    pass
+
 
 
 def add_symbols_to_rows(list_to_change):
 
-    symbol_column_map = {
+    symbol_column_map = { # not used, but could be used to reduce the near-duplicate lines below
         2:'"',
         4:'+',
         8:'++',
@@ -220,6 +230,8 @@ def add_symbols_to_rows(list_to_change):
         except ValueError:  # if we can't cast, keep the original value
             pass
 
+def shift_abilities_rows(list_with_abilities_rows):
+    pass
 
 def unit_list_to_rows(unit_list, ability_shorthand_dict):
     return_me = [HEADER_ROWS]
@@ -304,9 +316,15 @@ def process_unit_list(units, gspreadsheet):
     # sort units by toughness
     units.sort(key=lambda unit: (unit.unit_model_stat_rows[0][2], unit.unit_model_stat_rows[0][1]))
 
+    # TODO: Remove blank rows, either here or in an earlier function
+
     # Within each unit sort ranged weapons by range
     for unit in units:
-        unit.ranged_rows.sort(key=lambda row: -row[1])  # negative to reverse sort order
+        try:
+            unit.ranged_rows.sort(key=lambda row: -row[1])  # negative to reverse sort order
+        except:
+            print(unit) #breaks on blank rows, like if i manually delete a row in the g sheet that  i want to ignore (support turrets for example).
+
 
     # TODO: Sort units by units they could lead, or units they are leading. This currently happens naturally as many leaders have matching toughness to the units they lead.
 
