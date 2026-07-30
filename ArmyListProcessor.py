@@ -96,16 +96,16 @@ def handle_keyword_row(unit, row):
 
 #TODO Combine any regex rules into a new field, consolidate them into a single row (side by side in the output)
 def handle_ability_row(unit, row):
-    # if row contains keywords, sort out the relevant keywords in a regex.
-    if row[0].lower() in ["rules", "categories"]:
-        pattern = r'fly|Markerlight|Infiltrators|Lone Operative|Stealth|Grenades|Deep Strike|Deadly Demise D?[0-9]?\+?[0-9]|Scouts \d+'
-        ability_re = re.compile(pattern, re.IGNORECASE)
-        matches = re.findall(ability_re, "".join(row))
-        # if any matches were found, append a row containing the condensed line and the original line
-        if len(matches) > 0:
-            unit.ability_rows.append([", ".join(matches), row[1]])
+    # # if row contains keywords, sort out the relevant keywords in a regex.
+    # if row[0].lower() in ["rules", "categories"]:
+    #     pattern = r'fly|Markerlight|Infiltrators|Lone Operative|Stealth|Grenades|Deep Strike|Deadly Demise D?[0-9]?\+?[0-9]|Scouts \d+'
+    #     ability_re = re.compile(pattern, re.IGNORECASE)
+    #     matches = re.findall(ability_re, "".join(row))
+    #     # if any matches were found, append a row containing the condensed line and the original line
+    #     if len(matches) > 0:
+    #         unit.ability_rows.append([", ".join(matches), row[1]])
     # if row contains certain unneeded strings, pass
-    elif row[0] in ABILITY_FILTER or row[1] in ABILITY_FILTER:
+    if row[0] in ABILITY_FILTER or row[1] in ABILITY_FILTER:
         pass
     else:
         unit.ability_rows.append(row)
@@ -197,8 +197,6 @@ def write_list_to_csv(final_list):
             out_writer.writerow(row)
 
 
-
-
 def add_symbols_to_rows(list_to_change):
 
     symbol_column_map = { # not used, but could be used to reduce the near-duplicate lines below
@@ -230,7 +228,7 @@ def add_symbols_to_rows(list_to_change):
         except ValueError:  # if we can't cast, keep the original value
             pass
 
-def shift_abilities_rows(list_with_abilities_rows):
+def shift_abilities_rows(list_with_abilities_rows): # future home of logic to shift abilities to the right of unit stats
     pass
 
 def unit_list_to_rows(unit_list, ability_shorthand_dict):
@@ -257,7 +255,7 @@ def unit_list_to_rows(unit_list, ability_shorthand_dict):
             i += 1
 
         # insert the units abilities to the right of the stats, padding rows if needed to prevent spilling into next unit
-        padding_rows_needed = len(unit.ability_rows) - (len(unit.ranged_rows) + len(unit.melee_rows))
+        padding_rows_needed = len(unit.ability_rows) - (len(unit.ranged_rows) + len(unit.melee_rows)) + 1  # +1 is for the keywords rows which will always be a single row
 
         if padding_rows_needed > 0:
             for y in range(padding_rows_needed):
@@ -274,6 +272,13 @@ def unit_list_to_rows(unit_list, ability_shorthand_dict):
                 pass
 
             start_of_unit_row += 1
+
+        # add keywords, condensing the two rows into a single row to save space
+        if len(unit.keyword_rows) > 0:
+            return_me[start_of_unit_row][KEYWORDS_COLUMN] = unit.keyword_rows[0][0]
+        if len(unit.keyword_rows) > 1:
+            return_me[start_of_unit_row][KEYWORDS_COLUMN + 1] = unit.keyword_rows[1][0]
+
 
     # add symbols for readability, like inches and plus signs.
     add_symbols_to_rows(return_me)
