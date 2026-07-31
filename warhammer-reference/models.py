@@ -8,7 +8,8 @@ class Army:
 
 class Unit:
     def __init__(self):
-        self.models = []
+        self.name = ""
+        self.model_profiles = []
         self.weapon_profiles = []
         self.abilities = []
         self.keywords = []
@@ -16,7 +17,7 @@ class Unit:
 
     # return the name of the first model in the unit
     def __str__(self):
-        return self.models[0].name
+        return self.name
 
 class Model:
     def __init__(self):
