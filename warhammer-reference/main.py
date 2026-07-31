@@ -1,5 +1,6 @@
 import parser
 import yellowscribe
+from models import Army
 
 DEBUG = True
 
@@ -22,8 +23,8 @@ def main():
 
     #print(input_data['armyData'])
     # parse input to an army object
-    units, army_rules, strats = parser.get_army_lists_from_json(input_data)
-    print(units)
+    my_army = parser.parse_army(input_data)
+    #print(my_army)
 
     # export army to outputs
     # final_list = process_unit_list(units, gspreadsheet)
