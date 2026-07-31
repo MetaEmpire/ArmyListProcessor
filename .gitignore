@@ -4,3 +4,4 @@ gsheetexport.csv
 40k Cheat Sheet Generator - Google Sheets.pdf
 credentials.json
 .env
+*.pyc

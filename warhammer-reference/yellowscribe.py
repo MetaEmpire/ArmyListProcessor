@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 BASE_URL = "https://yellowscribe.link/get_army_by_id"
@@ -28,4 +30,5 @@ def get_army_by_user_input():
 #print(r.json().keys())
 
 def get_debug_json():
-    return None
+    with open("yellowscribe_json_example3.json", mode="r", newline="", encoding="utf-8") as file:
+        return json.load(file)
