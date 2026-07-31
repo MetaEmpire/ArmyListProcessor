@@ -20,7 +20,11 @@ class Unit:
 
 # model profile, see note below about weapon class being a weapon profile. consider renaming to include word "profile"
 class ModelProfile:
-    def __init__(self, name, move, toughness, save, wounds, leadership, objective_control, invulnerable_save, weapons, number):
+    def __init__(self, name, move, toughness, save, wounds, leadership, objective_control, invulnerable_save,
+                 weapons=None, number = 0):
+        if weapons is None:
+            weapons = {}
+
         self.name = name
         self.move = move
         self.toughness = toughness

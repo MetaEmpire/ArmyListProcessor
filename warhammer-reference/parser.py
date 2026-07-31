@@ -10,24 +10,19 @@ def parse_army(json_data) -> Army:
         model_profiles = {}
         weapon_profiles = {}
 
-        for model_profile_name, model_profile_data in unit_data['modelProfiles'].items():
-            print(model_profile_name)
-            print(model_profile_data)
-
-            model_profiles[model_profile_name] = parse_model_profile(model_profile_data)
-
-        # for each of the model profiles, look up their sub section of weapon names+counts. add that to the profile.
-        # ideally i wouldnt do two separate for loops for this... if i go up 1 level in scope i can probably see everything
-        # to make the model_profile with all the fields i need. I need the above weapons and the model count.
-        # note: still try to handle the parser ONLY the section it needs. even if i back the for loop scope up 1 level
-
         for weapon_profile_name, weapon_profile_data in unit_data['weapons'].items():
             #print(weapon_profile_name)
             #print(weapon_profile_data)
-            weapon_profiles[weapon_profile_name] = parse_weapon(weapon_profile_data)
+            weapon_profiles[weapon_profile_name] = parse_weapon_profile(weapon_profile_data)
 
+        for model_profile_name, model_profile_data in unit_data['modelProfiles'].items():
+            #print(model_profile_name)
+            #print(model_profile_data)
+            model_profiles[model_profile_name] = parse_model_profile(model_profile_data)
 
-    # todo, return Army object.
+        #for each model, there is a list of dicts containing the weapon name and number of that weapon. those two things
+
+    print (models)# todo, return Army object.
 
 def parse_model_profile(model_dict) -> ModelProfile:
     return_me = ModelProfile(
@@ -44,7 +39,7 @@ def parse_model_profile(model_dict) -> ModelProfile:
     )
     return return_me
 
-def parse_weapon(weapon_dict) -> WeaponProfile:
+def parse_weapon_profile(weapon_dict) -> WeaponProfile:
     #print(weapon_dict)
     return_me = WeaponProfile(
         weapon_dict['name'],
