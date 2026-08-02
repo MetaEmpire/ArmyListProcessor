@@ -1,6 +1,6 @@
 import requests
 from pprint import pprint
-code = "71604f55"
+code = "d7a44d42"
 
 r = requests.get(
     "https://yellowscribe.link/get_army_by_id",

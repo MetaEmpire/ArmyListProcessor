@@ -1,12 +1,29 @@
-from models import Army, Unit, ModelProfile, WeaponProfile
+from models import Army, Unit, Model, ModelProfile, WeaponProfile
+
+
+def find_model_profile(name, profiles):
+    if name in profiles:
+        return profiles[name]
+    else:
+        truncated_name = name.split(' w')[0]  # dropping common name suffix of "w/ .... "
+        try:
+            return profiles[truncated_name]
+        except KeyError:
+            print(f"Cannot associate this model name with a known model profile: {name}")
+
 
 def parse_army(json_data) -> Army:
+
+    units = []
 
     for unit_name, unit_data in json_data["armyData"].items():
         #print(unit_name)
         #print(unit_data)
 
-        models = {}
+        #current_unit = Unit()
+
+        models = []
+        weapons = {}
         model_profiles = {}
         weapon_profiles = {}
 
@@ -20,9 +37,42 @@ def parse_army(json_data) -> Army:
             #print(model_profile_data)
             model_profiles[model_profile_name] = parse_model_profile(model_profile_data)
 
-        #for each model, there is a list of dicts containing the weapon name and number of that weapon. those two things
+        #for each model, associate model profiles and build model object
+        for model_name, model_data in unit_data['models']['models'].items():
+            print(model_name)
+            print(model_data)
 
-    print (models)# todo, return Army object.
+            current_model = Model()
+
+            current_model.name = model_data['name']
+            current_model.count = model_data['number']
+
+            # counting model profile matches, the only way to do that currently is by imperfectly using the name string
+            current_model.profile = find_model_profile(model_data['name'], model_profiles)
+            if not current_model.profile:
+                continue # this most likely creates unusable output so we might as well exit,
+                # but for troubleshooting it will be useful to identify any other problem models.
+
+            for weapon in model_data['weapons']:
+                current_model.weapons[weapon['name']] = weapon['number']
+
+            models.append(current_model)
+        # end model scope iteration
+
+        new_unit = Unit(
+            unit_data['name'],
+            models,
+            model_profiles,
+            weapon_profiles,
+            {},
+            []
+        )
+
+        units.append(new_unit)
+
+    # end unit scope iteration
+
+    return Army(units)
 
 def parse_model_profile(model_dict) -> ModelProfile:
     return_me = ModelProfile(
@@ -34,8 +84,6 @@ def parse_model_profile(model_dict) -> ModelProfile:
         model_dict['ld'],
         model_dict['oc'],
         model_dict['insv'],
-        {},
-        1
     )
     return return_me
 

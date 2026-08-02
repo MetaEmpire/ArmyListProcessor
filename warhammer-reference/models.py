@@ -1,29 +1,38 @@
 class Army:
-    def __init__(self):
-        self.units = []
+    def __init__(self, units):
+        self.units = units
         self.army_rules = []
         self.stratagems = []
         self.disposition = ""
 
 
 class Unit:
+    def __init__(self, name, models, model_profiles, weapon_profiles, abilities, keywords):
+        self.name = name
+        self.models = models
+        #self.model_profiles = {}
+        #self.weapon_profiles = {}
+        self.abilities = abilities
+        self.keywords = keywords
+        self.leadable_units = []
+
+    def __str__(self):
+        return self.name
+
+class Model:
     def __init__(self):
         self.name = ""
-        self.model_profiles = []
-        self.weapon_profiles = []
-        self.abilities = []
-        self.keywords = []
-        self.leadable_units = []
+        self.count = 0
+        self.profile = None # this will be type ModelProfile
+        self.weapons = {} # dictonary of weapon names as the key and their count as value
+        self.abilities = {}
 
     def __str__(self):
         return self.name
 
 # model profile, see note below about weapon class being a weapon profile. consider renaming to include word "profile"
 class ModelProfile:
-    def __init__(self, name, move, toughness, save, wounds, leadership, objective_control, invulnerable_save,
-                 weapons=None, number = 0):
-        if weapons is None:
-            weapons = {}
+    def __init__(self, name, move, toughness, save, wounds, leadership, objective_control, invulnerable_save, number = 0):
 
         self.name = name
         self.move = move
@@ -33,8 +42,6 @@ class ModelProfile:
         self.leadership = leadership
         self.objective_control = objective_control
         self.invulnerable_save = invulnerable_save
-        self.weapons = weapons
-        self.number = number
 
     def __str__(self):
         return self.name
