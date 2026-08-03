@@ -5,13 +5,16 @@ class Army:
         self.stratagems = []
         self.disposition = ""
 
+    def __str__(self):
+        return ", ".join(str(unit) for unit in self.units)
+
 
 class Unit:
     def __init__(self, name, models, model_profiles, weapon_profiles, abilities, keywords):
         self.name = name
         self.models = models
-        #self.model_profiles = {}
-        #self.weapon_profiles = {}
+        self.model_profiles = {}
+        self.weapon_profiles = {}
         self.abilities = abilities
         self.keywords = keywords
         self.leadable_units = []
@@ -20,11 +23,11 @@ class Unit:
         return self.name
 
 class Model:
-    def __init__(self):
-        self.name = ""
-        self.count = 0
-        self.profile = None # this will be type ModelProfile
-        self.weapons = {} # dictonary of weapon names as the key and their count as value
+    def __init__(self, name, count, profile, weapons):
+        self.name = name
+        self.count = count
+        self.profile = profile # this will be type ModelProfile
+        self.weapons = {} # dictionary of weapon names as the key and their count as value
         self.abilities = {}
 
     def __str__(self):

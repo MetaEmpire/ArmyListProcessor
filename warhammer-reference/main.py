@@ -21,10 +21,9 @@ def main():
         # local json for development purposes:
         input_data = yellowscribe.get_debug_json()
 
-    #print(input_data['armyData'])
     # parse input to an army object
     my_army = parser.parse_army(input_data)
-    #print(my_army)
+    print(my_army)
 
     # export army to outputs
     # final_list = process_unit_list(units, gspreadsheet)
