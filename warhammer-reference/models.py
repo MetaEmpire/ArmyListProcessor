@@ -13,11 +13,11 @@ class Unit:
     def __init__(self, name, models, model_profiles, weapon_profiles, abilities, keywords):
         self.name = name
         self.models = models
-        self.model_profiles = {}
-        self.weapon_profiles = {}
+        self.model_profiles = model_profiles
+        self.weapon_profiles = weapon_profiles
         self.abilities = abilities
         self.keywords = keywords
-        self.leadable_units = []
+        #self.leadable_units = []
 
     def __str__(self):
         return self.name
@@ -27,8 +27,8 @@ class Model:
         self.name = name
         self.count = count
         self.profile = profile # this will be type ModelProfile
-        self.weapons = {} # dictionary of weapon names as the key and their count as value
-        self.abilities = {}
+        self.weapons = weapons # dictionary of weapon names as the key and their count as value
+        #self.abilities = {}
 
     def __str__(self):
         return self.name

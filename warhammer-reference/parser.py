@@ -3,15 +3,13 @@ from typing import Any
 from models import Army, Unit, Model, ModelProfile, WeaponProfile
 
 
-def find_model_profile(name, profiles):
-    if name in profiles:
-        return profiles[name]
-    else:
-        truncated_name = name.split(' w')[0]  # dropping common name suffix of "w/ .... "
-        try:
-            return profiles[truncated_name]
-        except KeyError:
-            print(f"Cannot associate this model name with a known model profile: {name}")
+def parse_abilities(abilities_json):
+    return_me = {}
+    for ability_name, ability_data in abilities_json.items():
+        print(ability_name)
+        print(ability_data)
+        return_me[ability_data['name']] = ability_data['desc']
+    return return_me
 
 
 def parse_army(json_data) -> Army:
@@ -26,6 +24,7 @@ def parse_army(json_data) -> Army:
         model_profiles = parse_model_profiles(unit_data['modelProfiles'])
 
         models = []
+
         #for each model, associate model profiles and build model object
         for model_name, model_data in unit_data['models']['models'].items():
             current_model = parse_model(model_data, model_profiles)
@@ -34,13 +33,15 @@ def parse_army(json_data) -> Army:
 
         # end model scope iteration
 
+        unit_abilities = parse_abilities(unit_data['abilities'])
+
         new_unit = Unit(
             unit_data['name'],
             models,
             model_profiles,
             weapon_profiles,
-            {},
-            []
+            unit_abilities,
+            unit_data['keywords']
         )
 
         units.append(new_unit)
@@ -49,6 +50,18 @@ def parse_army(json_data) -> Army:
 
     return Army(units)
 
+# this helper function will return a profile based on a name match. If the name doesn't match it
+# will try a truncated version of the original name. Example: "Guardsmen w/ Long Las" will be
+# shortened to "Guardsmen" if the original name is not found.
+def find_model_profile(name, profiles):
+    if name in profiles:
+        return profiles[name]
+    else:
+        truncated_name = name.split(' w')[0]  # dropping common name suffix of "w/ .... "
+        try:
+            return profiles[truncated_name]
+        except KeyError:
+            print(f"Cannot associate this model name with a known model profile: {name}")
 
 def parse_weapon_profiles(weapons_json):
     weapon_profiles = {}
@@ -100,7 +113,8 @@ def parse_weapon_profile(weapon_dict) -> WeaponProfile:
         weapon_dict['s'],
         weapon_dict['ap'],
         weapon_dict['d'],
-        weapon_dict['shortAbilities']
+        weapon_dict['short'
+                    'Abilities']
     )
     #print(return_me)
     return return_me
