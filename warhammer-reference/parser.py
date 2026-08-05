@@ -1,15 +1,6 @@
-from typing import Any
+#from typing import Any
 
 from models import Army, Unit, Model, ModelProfile, WeaponProfile
-
-
-def parse_abilities(abilities_json):
-    return_me = {}
-    for ability_name, ability_data in abilities_json.items():
-        print(ability_name)
-        print(ability_data)
-        return_me[ability_data['name']] = ability_data['desc']
-    return return_me
 
 
 def parse_army(json_data) -> Army:
@@ -53,7 +44,7 @@ def parse_army(json_data) -> Army:
 # this helper function will return a profile based on a name match. If the name doesn't match it
 # will try a truncated version of the original name. Example: "Guardsmen w/ Long Las" will be
 # shortened to "Guardsmen" if the original name is not found.
-def find_model_profile(name, profiles):
+def find_model_profile(name, profiles) -> ModelProfile:
     if name in profiles:
         return profiles[name]
     else:
@@ -61,22 +52,21 @@ def find_model_profile(name, profiles):
         try:
             return profiles[truncated_name]
         except KeyError:
-            print(f"Cannot associate this model name with a known model profile: {name}")
+            raise ValueError(f"ModelProfile {truncated_name} not found")
 
-def parse_weapon_profiles(weapons_json):
+def parse_weapon_profiles(weapons_json) -> dict[str, WeaponProfile]:
     weapon_profiles = {}
     for weapon_profile_name, weapon_profile_data in weapons_json.items():
         weapon_profiles[weapon_profile_name] = parse_weapon_profile(weapon_profile_data)
     return weapon_profiles
 
-def parse_model_profiles(model_profiles_json):
+def parse_model_profiles(model_profiles_json) -> dict[str, ModelProfile]:
     model_profiles = {}
     for model_profile_name, model_profile_data in model_profiles_json.items():
         model_profiles[model_profile_name] = parse_model_profile(model_profile_data)
     return model_profiles
 
-
-def parse_model(model_data, model_profiles):
+def parse_model(model_data, model_profiles) -> Model:
     weapons = {}
 
     for weapon in model_data['weapons']:
@@ -89,6 +79,14 @@ def parse_model(model_data, model_profiles):
         weapons
     )
 
+
+def parse_abilities(abilities_json) -> dict[str, str]:
+    return_me = {}
+    for ability_name, ability_data in abilities_json.items():
+        #print(ability_name)
+        #print(ability_data)
+        return_me[ability_data['name']] = ability_data['desc']
+    return return_me
 
 def parse_model_profile(model_dict) -> ModelProfile:
     return_me = ModelProfile(
@@ -113,8 +111,7 @@ def parse_weapon_profile(weapon_dict) -> WeaponProfile:
         weapon_dict['s'],
         weapon_dict['ap'],
         weapon_dict['d'],
-        weapon_dict['short'
-                    'Abilities']
+        weapon_dict['shortAbilities']
     )
     #print(return_me)
     return return_me

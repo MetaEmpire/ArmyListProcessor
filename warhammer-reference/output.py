@@ -31,3 +31,6 @@ def output_to_gsheets():
 def army_to_csv():
     pass
 
+
+def print_to_terminal(my_army):
+    pass
