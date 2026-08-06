@@ -32,5 +32,17 @@ def army_to_csv():
     pass
 
 
-def print_to_terminal(my_army):
-    pass
+def print_to_terminal(input_army):
+    for unit in input_army.units:
+        # helper functions: count weapons profiles, count model profiles
+        print(unit)
+        #print("Models:")
+        for model in unit.models:
+            print(f"\t{model.name} x{model.count}")
+            #print(f"\t{model.weapons}")
+            for weapon in model.weapons:
+                print(f"\t\t{model.weapons[weapon]}x {weapon}")
+                print(f"\t\t\t{unit.weapon_profiles[weapon].range}")
+
+        print(unit.abilities)
+        print(unit.keywords)
