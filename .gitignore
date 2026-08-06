@@ -1,6 +1,6 @@
 .idea/
-pyexport.csv
-gsheetexport.csv
+legacy/pyexport.csv
+legacy/gsheetexport.csv
 40k Cheat Sheet Generator - Google Sheets.pdf
 credentials.json
 .env

@@ -22,11 +22,12 @@ class Unit:
     def __str__(self):
         return self.name
 
-    def get_weapons_list(self):
+    def get_all_weapons(self):
         return_me = {}
         for model in self.models:
             for weapon in model.weapons:
-                return_me[weapon] = return_me.get(weapon, 0) + 1
+                # record the product of the number of weapons found by the count of these models.
+                return_me[weapon] = return_me.get(weapon, 0) + model.weapons[weapon] * model.count
         return return_me
 
 class Model:
@@ -42,8 +43,7 @@ class Model:
 
 # model profile, see note below about weapon class being a weapon profile. consider renaming to include word "profile"
 class ModelProfile:
-    def __init__(self, name, move, toughness, save, wounds, leadership, objective_control, invulnerable_save, number = 0):
-
+    def __init__(self, name, move, toughness, save, wounds, leadership, objective_control, invulnerable_save):
         self.name = name
         self.move = move
         self.toughness = toughness
@@ -51,16 +51,28 @@ class ModelProfile:
         self.wounds = wounds
         self.leadership = leadership
         self.objective_control = objective_control
-        self.invulnerable_save = invulnerable_save
+
+        #TODO: From some apps the inv save is being reported as an ability, not part of the profile.
+        # I may want a data validation step to do a pass on the army to detect this
+        if invulnerable_save is None:
+            self.invulnerable_save = 0
+        else:
+            self.invulnerable_save = invulnerable_save
 
     def __str__(self):
-        return self.name
+        return_me = ""
+        # return_me = ", ".join(list(str(
+        #     vars(self).values()))
+        # )
+        for field, value in vars(self).items():
+            return_me += str(value) + ", "
+        return return_me
 
 # conceptually this is a weapon profile, not an individual weapon that an individual model would have.
 class WeaponProfile:
-    def __init__(self, name, range, attacks, skill, strength, armor_piercing, damage, abilities):
+    def __init__(self, name, atk_range, attacks, skill, strength, armor_piercing, damage, abilities):
         self.name = name
-        self.range = range
+        self.range = atk_range
         self.attacks = attacks
         self.skill = skill
         self.strength = strength
@@ -69,4 +81,7 @@ class WeaponProfile:
         self.abilities = abilities
 
     def __str__(self):
-        return self.name
+        return_me = ""
+        for field, value in vars(self).items():
+            return_me += str(value) + ", "
+        return return_me
