@@ -22,6 +22,13 @@ class Unit:
     def __str__(self):
         return self.name
 
+    def get_weapons_list(self):
+        return_me = {}
+        for model in self.models:
+            for weapon in model.weapons:
+                return_me[weapon] = return_me.get(weapon, 0) + 1
+        return return_me
+
 class Model:
     def __init__(self, name, count, profile, weapons):
         self.name = name

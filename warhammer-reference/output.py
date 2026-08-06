@@ -3,6 +3,7 @@ import re
 import csv
 from dotenv import load_dotenv
 from datetime import datetime
+from models import Army, Unit, Model
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -36,13 +37,12 @@ def print_to_terminal(input_army):
     for unit in input_army.units:
         # helper functions: count weapons profiles, count model profiles
         print(unit)
-        #print("Models:")
+        print(unit.get_weapons_list())
         for model in unit.models:
             print(f"\t{model.name} x{model.count}")
-            #print(f"\t{model.weapons}")
-            for weapon in model.weapons:
-                print(f"\t\t{model.weapons[weapon]}x {weapon}")
-                print(f"\t\t\t{unit.weapon_profiles[weapon].range}")
+            # for weapon in model.weapons:
+            #     print(f"\t\t{model.weapons[weapon]}x {weapon}")
+            #     print(f"\t\t\t{unit.weapon_profiles[weapon].range}")
 
         print(unit.abilities)
         print(unit.keywords)
